@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "fastapi>=0.121.2",
     "jax>=0.8.0",
     "numpy>=2.3.4",
     "thrml>=0.1.3",
