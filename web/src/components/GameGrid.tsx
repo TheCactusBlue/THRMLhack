@@ -129,23 +129,24 @@ export function GameGrid({
 
   return (
     <div className="flex justify-center mb-3">
-      <div className="relative">
-        {/* PHASE 2: Coupling visualization overlay */}
+      <div className="relative bg-neutral-900 rounded-lg p-3 shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
+        {/* PHASE 2: Coupling visualization overlay - behind cells */}
         {showCouplings && (
           <CouplingOverlay
             gameState={gameState}
             cellSize={55}
-            gap={3}
+            gap={8}
             padding={12}
           />
         )}
 
         <div
-          className={`grid gap-[3px] p-3 bg-neutral-900 rounded-lg shadow-[0_4px_16px_rgba(0,0,0,0.4)] ${
+          className={`grid gap-2 relative ${
             isAnimating ? "animate-pulse" : ""
           }`}
           style={{
             gridTemplateColumns: `repeat(${gameState.grid_size}, 55px)`,
+            zIndex: 10,
           }}
         >
         {Array.from({ length: gameState.grid_size }).map((_, row) =>

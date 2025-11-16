@@ -10,7 +10,7 @@ interface CouplingOverlayProps {
 export function CouplingOverlay({
   gameState,
   cellSize = 55,
-  gap = 3,
+  gap = 8,
   padding = 12,
 }: CouplingOverlayProps) {
   // Calculate edge index from grid coordinates
@@ -69,9 +69,9 @@ export function CouplingOverlay({
                 y1={from.y}
                 x2={to.x}
                 y2={to.y}
-                stroke={coupling > 0 ? "#3b82f6" : "#ef4444"}
-                strokeWidth={Math.abs(coupling) * 4 + 1}
-                opacity={0.6}
+                stroke={coupling > 0 ? "#60a5fa" : "#f87171"}
+                strokeWidth={Math.max(1, Math.abs(coupling) * 3)}
+                opacity={0.5}
                 strokeLinecap="round"
               />
               <title>{`Coupling: ${coupling.toFixed(2)}`}</title>
@@ -93,9 +93,9 @@ export function CouplingOverlay({
                 y1={from.y}
                 x2={to.x}
                 y2={to.y}
-                stroke={coupling > 0 ? "#3b82f6" : "#ef4444"}
-                strokeWidth={Math.abs(coupling) * 4 + 1}
-                opacity={0.6}
+                stroke={coupling > 0 ? "#60a5fa" : "#f87171"}
+                strokeWidth={Math.max(1, Math.abs(coupling) * 3)}
+                opacity={0.5}
                 strokeLinecap="round"
               />
               <title>{`Coupling: ${coupling.toFixed(2)}`}</title>
@@ -116,7 +116,7 @@ export function CouplingOverlay({
       width={svgWidth}
       height={svgHeight}
       className="absolute top-0 left-0 pointer-events-none"
-      style={{ zIndex: 1 }}
+      style={{ zIndex: 0 }}
     >
       {renderEdges()}
     </svg>
