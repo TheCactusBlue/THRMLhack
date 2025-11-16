@@ -295,6 +295,49 @@ def reset_game():
     return {"message": "Game reset successfully"}
 
 
+@app.post("/game/batch")
+def batch_actions(actions: list[dict]):
+    """
+    Execute multiple actions in a single request.
+    Each action should have:
+    - type: 'bias' or 'coupling'
+    - params: parameters for the action
+    """
+    if current_game is None:
+        raise HTTPException(status_code=404, detail="No active game. Create a game first.")
+
+    try:
+        for action in actions:
+            action_type = action.get('type')
+            params = action.get('params', {})
+
+            if action_type == 'bias':
+                game.apply_bias(
+                    current_game,
+                    params['row'],
+                    params['col'],
+                    params['direction'],
+                    params.get('player', 'A')
+                )
+            elif action_type == 'coupling':
+                game.apply_edge_change(
+                    current_game,
+                    tuple(params['cell1']),
+                    tuple(params['cell2']),
+                    params['direction'],
+                    params.get('player', 'A')
+                )
+            else:
+                raise ValueError(f"Unknown action type: {action_type}")
+
+        return {
+            "message": f"Executed {len(actions)} actions successfully",
+            "actions_count": len(actions),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @app.post("/game/ready/{player}")
 def set_ready(player: str, ready: bool = True):
     if current_game is None:

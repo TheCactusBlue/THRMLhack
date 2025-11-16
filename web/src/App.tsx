@@ -22,6 +22,7 @@ function App() {
     toggleReady,
     nextRound,
     previewSampling,
+    batchActions,
   } = useGameAPI();
 
   const [selectedCell, setSelectedCell] = useState<[number, number] | null>(
@@ -146,26 +147,41 @@ function App() {
     setActionQueue([]);
   };
 
-  // PHASE 2: Commit all queued actions
+  // PHASE 2: Commit all queued actions (using batch API)
   const handleCommit = async () => {
-    for (const action of actionQueue) {
-      if (action.type === "bias") {
-        await updateBias(
-          action.params.row!,
-          action.params.col!,
-          action.params.direction,
-          action.params.player
-        );
-      } else if (action.type === "coupling") {
-        await updateCoupling(
-          action.params.cell1!,
-          action.params.cell2!,
-          action.params.direction,
-          action.params.player
-        );
+    if (actionQueue.length === 0) return;
+    await batchActions(actionQueue);
+    setActionQueue([]);
+  };
+
+  // NEW: Commit and mark ready in one action
+  const handleCommitAndReady = async () => {
+    if (!gameState) return;
+
+    // Commit actions if any
+    if (actionQueue.length > 0) {
+      await batchActions(actionQueue);
+      setActionQueue([]);
+    }
+
+    // Mark as ready
+    const isReady =
+      currentPlayer === "A"
+        ? gameState.player_a_ready
+        : gameState.player_b_ready;
+    await toggleReady(currentPlayer, isReady);
+
+    // Auto-switch to other player if they're not ready yet
+    if (!isReady) { // We just marked current player as ready
+      const otherPlayerReady = currentPlayer === "A"
+        ? gameState.player_b_ready
+        : gameState.player_a_ready;
+
+      if (!otherPlayerReady) {
+        // Switch to the other player so they can take their turn
+        setCurrentPlayer(currentPlayer === "A" ? "B" : "A");
       }
     }
-    setActionQueue([]);
   };
 
   const handleRunSampling = async () => {
@@ -236,6 +252,7 @@ function App() {
             onUndo={handleUndo}
             onClearAll={handleClearAll}
             onCommit={handleCommit}
+            onCommitAndReady={handleCommitAndReady}
             disabled={loading}
           />
 

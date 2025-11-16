@@ -5,6 +5,7 @@ interface ActionQueueProps {
   onUndo: () => void;
   onClearAll: () => void;
   onCommit: () => void;
+  onCommitAndReady?: () => void;
   disabled?: boolean;
 }
 
@@ -13,6 +14,7 @@ export function ActionQueue({
   onUndo,
   onClearAll,
   onCommit,
+  onCommitAndReady,
   disabled = false,
 }: ActionQueueProps) {
   if (actions.length === 0) {
@@ -41,30 +43,40 @@ export function ActionQueue({
         ))}
       </div>
 
-      <div className="flex gap-2 justify-between">
+      <div className="flex gap-2 flex-wrap">
         <button
           onClick={onUndo}
           disabled={disabled || actions.length === 0}
-          className="px-3 py-1.5 text-xs font-semibold bg-neutral-700 hover:bg-neutral-600 rounded text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-3 py-1.5 text-xs font-semibold bg-neutral-700 hover:enabled:bg-neutral-600 rounded text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          ↩ Undo Last
+          ↩ Undo
         </button>
 
         <button
           onClick={onClearAll}
           disabled={disabled || actions.length === 0}
-          className="px-3 py-1.5 text-xs font-semibold bg-red-600/80 hover:bg-red-600 rounded text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-3 py-1.5 text-xs font-semibold bg-red-600/80 hover:enabled:bg-red-600 rounded text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          🗑 Clear All
+          🗑 Clear
         </button>
 
         <button
           onClick={onCommit}
           disabled={disabled || actions.length === 0}
-          className="px-4 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 rounded text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md"
+          className="px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:enabled:bg-emerald-500 rounded text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md"
         >
-          ✓ COMMIT
+          ✓ Commit
         </button>
+
+        {onCommitAndReady && (
+          <button
+            onClick={onCommitAndReady}
+            disabled={disabled}
+            className="px-3 py-1.5 text-xs font-bold bg-blue-600 hover:enabled:bg-blue-500 rounded text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md"
+          >
+            ⚡ Commit & Ready
+          </button>
+        )}
       </div>
     </div>
   );

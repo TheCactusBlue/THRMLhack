@@ -136,6 +136,24 @@ export function useGameAPI() {
     }
   }, [fetchGameState])
 
+  const batchActions = useCallback(async (actions: any[]) => {
+    setLoading(true)
+    try {
+      await fetch(`${API_URL}/game/batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(actions),
+      })
+      await fetchGameState()
+      showMessage(`Executed ${actions.length} action(s)`)
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      showMessage('Error: ' + errorMsg)
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchGameState])
+
   const nextRound = useCallback(async () => {
     setLoading(true)
     try {
@@ -188,5 +206,6 @@ export function useGameAPI() {
     toggleReady,
     nextRound,
     previewSampling,
+    batchActions,
   }
 }
