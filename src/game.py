@@ -207,7 +207,7 @@ def run_sampling(game: GameState,
 
     # Build sampling program
     program = IsingSamplingProgram(
-        model=model,
+        ebm=model,
         free_blocks=free_blocks,
         clamped_blocks=[],
     )
@@ -224,15 +224,14 @@ def run_sampling(game: GameState,
     )
 
     # Run sampling
-    # Depending on THRML version, sample_states may return a PyTree; you can
-    # inspect it once and then adjust this unpacking.
+    # sample_states(key, program, schedule, init_state_free, state_clamp, nodes_to_sample)
     samples = sample_states(
         key_samp,
         program,
         schedule,
         init_state,
-        observers=[],
-        observed_blocks=[all_nodes_block],
+        [],  # state_clamp - empty list for clamped blocks
+        [all_nodes_block],  # nodes_to_sample
     )
 
     # For many examples, `samples` is an array of shape (n_samples, N),

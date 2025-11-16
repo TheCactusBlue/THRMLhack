@@ -11,7 +11,7 @@ beta = jnp.array(1.0)
 model = IsingEBM(nodes, edges, biases, weights, beta)
 
 free_blocks = [Block(nodes[::2]), Block(nodes[1::2])]
-program = IsingSamplingProgram(model, free_blocks, clamped_blocks=[])
+program = IsingSamplingProgram(ebm=model, free_blocks=free_blocks, clamped_blocks=[])
 
 key = jax.random.key(0)
 k_init, k_samp = jax.random.split(key, 2)
