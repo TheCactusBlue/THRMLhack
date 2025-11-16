@@ -9,6 +9,11 @@ interface GameState {
   couplings: number[]
   beta: number
   last_board?: number[][]
+  spin_confidence?: number[][]
+  energy?: number
+  magnetization?: number
+  player_a_territory?: number
+  player_b_territory?: number
 }
 
 function App() {
@@ -17,6 +22,7 @@ function App() {
   const [message, setMessage] = useState('')
   const [selectedCell, setSelectedCell] = useState<[number, number] | null>(null)
   const [edgeMode, setEdgeMode] = useState(false)
+  const [showConfidence, setShowConfidence] = useState(false)
 
   useEffect(() => {
     createGame()
@@ -219,9 +225,14 @@ function App() {
                 style={{ backgroundColor: getCellColor(row, col) }}
                 onClick={() => handleCellClick(row, col)}
               >
-                {gameState.last_board && (
+                {gameState.last_board && !showConfidence && (
                   <span className="spin-value">
                     {gameState.last_board[row][col] > 0 ? '+' : '-'}
+                  </span>
+                )}
+                {showConfidence && gameState.spin_confidence && (
+                  <span className="confidence-value">
+                    {(gameState.spin_confidence[row][col] * 100).toFixed(0)}%
                   </span>
                 )}
               </div>
@@ -266,15 +277,58 @@ function App() {
       </div>
 
       <div className="info">
-        <p>
-          <strong>Mode:</strong> {edgeMode ? 'Coupling' : 'Bias'}
-        </p>
-        <p>
-          <strong>Blue (+1):</strong> Player A | <strong>Red (-1):</strong> Player B
-        </p>
-        <p>
-          <strong>Beta:</strong> {gameState.beta.toFixed(2)}
-        </p>
+        <div className="info-section">
+          <h3>Game Info</h3>
+          <p>
+            <strong>Mode:</strong> {edgeMode ? 'Coupling' : 'Bias'}
+          </p>
+          <p>
+            <strong>Beta (Temperature):</strong> {gameState.beta.toFixed(2)}
+          </p>
+          <p className="legend">
+            <strong>Blue (+1):</strong> Player A | <strong style={{color: '#ef4444'}}>Red (-1):</strong> Player B
+          </p>
+        </div>
+
+        {gameState.last_board && (
+          <div className="info-section stats">
+            <h3>Statistics</h3>
+            <div className="stats-grid">
+              <div className="stat-item">
+                <span className="stat-label">Player A Territory</span>
+                <span className="stat-value blue">{gameState.player_a_territory || 0}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">Player B Territory</span>
+                <span className="stat-value red">{gameState.player_b_territory || 0}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">Energy</span>
+                <span className="stat-value">{gameState.energy?.toFixed(2) || 'N/A'}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">Magnetization</span>
+                <span className="stat-value">{gameState.magnetization?.toFixed(3) || 'N/A'}</span>
+              </div>
+            </div>
+
+            <div className="view-toggle">
+              <button
+                className={`view-btn ${!showConfidence ? 'active' : ''}`}
+                onClick={() => setShowConfidence(false)}
+              >
+                Show Spins
+              </button>
+              <button
+                className={`view-btn ${showConfidence ? 'active' : ''}`}
+                onClick={() => setShowConfidence(true)}
+                disabled={!gameState.spin_confidence}
+              >
+                Show Confidence
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -175,6 +175,32 @@ def set_beta(game: GameState, beta_value: float):
     game.beta = jnp.array(beta_value, dtype=jnp.float32)
 
 
+def calculate_energy(game: GameState, spins: jnp.ndarray) -> jnp.ndarray:
+    """
+    Calculate the energy of the Ising model for a given spin configuration.
+
+    Energy E = -sum_i(h_i * s_i) - sum_{i<j}(J_ij * s_i * s_j)
+
+    where:
+        h_i are the biases
+        J_ij are the couplings
+        s_i are the spins (+1 or -1)
+    """
+    # Bias term: -sum_i(h_i * s_i)
+    bias_energy = -jnp.sum(game.biases * spins)
+
+    # Coupling term: -sum_{i<j}(J_ij * s_i * s_j)
+    coupling_energy = 0.0
+    for edge_idx, (node_i, node_j) in enumerate(game.edges):
+        # Get node indices from the nodes list
+        i = game.nodes.index(node_i)
+        j = game.nodes.index(node_j)
+        coupling_energy -= game.couplings[edge_idx] * spins[i] * spins[j]
+
+    total_energy = bias_energy + coupling_energy
+    return total_energy
+
+
 def run_sampling(game: GameState,
                  rng_key: jax.Array,
                  n_warmup: int = 100,
