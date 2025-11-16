@@ -2,7 +2,6 @@ import type { GameState } from "../types";
 
 interface GameGridProps {
   gameState: GameState;
-  showConfidence: boolean;
   selectedCell: [number, number] | null;
   edgeMode: boolean;
   onCellClick: (row: number, col: number) => void;
@@ -10,7 +9,6 @@ interface GameGridProps {
 
 export function GameGrid({
   gameState,
-  showConfidence,
   selectedCell,
   onCellClick,
 }: GameGridProps) {
@@ -55,14 +53,9 @@ export function GameGrid({
               style={{ backgroundColor: getCellColor(row, col) }}
               onClick={() => onCellClick(row, col)}
             >
-              {gameState.last_board && !showConfidence && (
-                <span className="spin-value">
-                  {gameState.last_board[row][col] > 0 ? "+" : "-"}
-                </span>
-              )}
-              {showConfidence && gameState.spin_confidence && (
+              {gameState.spin_confidence && (
                 <span className="confidence-value">
-                  {(gameState.spin_confidence[row][col] * 100).toFixed(0)}%
+                  {(gameState.spin_confidence[row][col] * 100).toFixed(0)}
                 </span>
               )}
             </div>

@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
-import './App.css'
-import type { PlayerType } from './types'
-import { useGameAPI } from './hooks/useGameAPI'
-import { PlayerPanel } from './components/PlayerPanel'
-import { GameGrid } from './components/GameGrid'
-import { GameControls } from './components/GameControls'
-import { GameStats } from './components/GameStats'
+import { useState, useEffect } from "react";
+import "./App.css";
+import type { PlayerType } from "./types";
+import { useGameAPI } from "./hooks/useGameAPI";
+import { PlayerPanel } from "./components/PlayerPanel";
+import { GameGrid } from "./components/GameGrid";
+import { GameControls } from "./components/GameControls";
+import { GameStats } from "./components/GameStats";
 
 function App() {
   const {
@@ -19,68 +19,77 @@ function App() {
     resetGame,
     toggleReady,
     nextRound,
-  } = useGameAPI()
+  } = useGameAPI();
 
-  const [selectedCell, setSelectedCell] = useState<[number, number] | null>(null)
-  const [edgeMode, setEdgeMode] = useState(false)
-  const [showConfidence, setShowConfidence] = useState(false)
-  const [currentPlayer, setCurrentPlayer] = useState<PlayerType>('A')
-  const [roundWinner, setRoundWinner] = useState<string | null>(null)
+  const [selectedCell, setSelectedCell] = useState<[number, number] | null>(
+    null
+  );
+  const [edgeMode, setEdgeMode] = useState(false);
+  const [showConfidence, setShowConfidence] = useState(false);
+  const [currentPlayer, setCurrentPlayer] = useState<PlayerType>("A");
+  const [roundWinner, setRoundWinner] = useState<string | null>(null);
 
   useEffect(() => {
-    createGame()
-  }, [createGame])
+    createGame();
+  }, [createGame]);
 
   const handleResetGame = async () => {
-    await resetGame()
-    setSelectedCell(null)
-    setEdgeMode(false)
-    setCurrentPlayer('A')
-    setRoundWinner(null)
-  }
+    await resetGame();
+    setSelectedCell(null);
+    setEdgeMode(false);
+    setCurrentPlayer("A");
+    setRoundWinner(null);
+  };
 
   const handleToggleReady = async () => {
-    if (!gameState) return
-    const isReady = currentPlayer === 'A' ? gameState.player_a_ready : gameState.player_b_ready
-    await toggleReady(currentPlayer, isReady)
-  }
+    if (!gameState) return;
+    const isReady =
+      currentPlayer === "A"
+        ? gameState.player_a_ready
+        : gameState.player_b_ready;
+    await toggleReady(currentPlayer, isReady);
+  };
 
   const handleNextRound = async () => {
-    const data = await nextRound()
+    const data = await nextRound();
     if (data) {
-      setRoundWinner(data.round_winner)
+      setRoundWinner(data.round_winner);
     }
-  }
+  };
 
   const handleCellClick = (row: number, col: number) => {
     if (edgeMode) {
       // Edge coupling mode
       if (selectedCell === null) {
-        setSelectedCell([row, col])
+        setSelectedCell([row, col]);
       } else {
         // Check if cells are neighbors
-        const [r1, c1] = selectedCell
+        const [r1, c1] = selectedCell;
         const isNeighbor =
           (Math.abs(r1 - row) === 1 && c1 === col) ||
-          (Math.abs(c1 - col) === 1 && r1 === row)
+          (Math.abs(c1 - col) === 1 && r1 === row);
 
         if (isNeighbor) {
           // Ask for direction
-          const direction = window.confirm('Increase coupling? (OK = increase, Cancel = decrease)')
+          const direction = window.confirm(
+            "Increase coupling? (OK = increase, Cancel = decrease)"
+          )
             ? 1
-            : -1
-          updateCoupling(selectedCell, [row, col], direction, currentPlayer)
+            : -1;
+          updateCoupling(selectedCell, [row, col], direction, currentPlayer);
         }
-        setSelectedCell(null)
+        setSelectedCell(null);
       }
     } else {
       // Bias mode
-      const direction = window.confirm(`Adjust bias at (${row}, ${col})?\n\nOK = Push to +1 (blue)\nCancel = Push to -1 (red)`)
+      const direction = window.confirm(
+        `Adjust bias at (${row}, ${col})?\n\nOK = Push to +1 (blue)\nCancel = Push to -1 (red)`
+      )
         ? 1
-        : -1
-      updateBias(row, col, direction, currentPlayer)
+        : -1;
+      updateBias(row, col, direction, currentPlayer);
     }
-  }
+  };
 
   if (!gameState) {
     return (
@@ -88,10 +97,10 @@ function App() {
         <h1>THRMLHack Energy Battle</h1>
         <p>Loading...</p>
       </div>
-    )
+    );
   }
 
-  const bothReady = gameState.player_a_ready && gameState.player_b_ready
+  const bothReady = gameState.player_a_ready && gameState.player_b_ready;
 
   return (
     <div className="app-container">
@@ -113,9 +122,7 @@ function App() {
         </div>
       )}
       {roundWinner && !gameState.game_winner && (
-        <div className="round-winner">
-          Last Round: Player {roundWinner} Won
-        </div>
+        <div className="round-winner">Last Round: Player {roundWinner} Won</div>
       )}
 
       <div className="game-layout">
@@ -133,7 +140,6 @@ function App() {
         <div className="center-panel">
           <GameGrid
             gameState={gameState}
-            showConfidence={showConfidence}
             selectedCell={selectedCell}
             edgeMode={edgeMode}
             onCellClick={handleCellClick}
@@ -145,23 +151,27 @@ function App() {
               disabled={loading || !bothReady}
               className="sample-btn"
             >
-              {bothReady ? '⚡ Run Sampling' : '⏳ Waiting...'}
+              {bothReady ? "⚡ Run Sampling" : "⏳ Waiting..."}
             </button>
 
             {gameState.last_board && (
-              <button onClick={handleNextRound} disabled={loading} className="next-btn">
+              <button
+                onClick={handleNextRound}
+                disabled={loading}
+                className="next-btn"
+              >
                 Next Round →
               </button>
             )}
 
             <button
-              className={`view-btn ${!showConfidence ? 'active' : ''}`}
+              className={`view-btn ${!showConfidence ? "active" : ""}`}
               onClick={() => setShowConfidence(false)}
             >
               Spins
             </button>
             <button
-              className={`view-btn ${showConfidence ? 'active' : ''}`}
+              className={`view-btn ${showConfidence ? "active" : ""}`}
               onClick={() => setShowConfidence(true)}
               disabled={!gameState.spin_confidence}
             >
@@ -184,7 +194,7 @@ function App() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
