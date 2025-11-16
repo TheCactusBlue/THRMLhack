@@ -25,6 +25,22 @@ export interface GameState {
   player_b_wins: number
   max_rounds: number
   game_winner?: string | null
+  entrenchment?: number[][]  // PHASE 2: Rounds of consecutive control per cell
+}
+
+// PHASE 2: Action for the undo queue
+export interface Action {
+  id: string
+  type: 'bias' | 'coupling'
+  description: string
+  params: {
+    row?: number
+    col?: number
+    cell1?: [number, number]
+    cell2?: [number, number]
+    direction: number
+    player: string
+  }
 }
 
 export type PlayerType = 'A' | 'B'

@@ -82,6 +82,9 @@ class GameStateResponse(BaseModel):
     max_rounds: int = 5
     game_winner: Optional[str] = None
 
+    # PHASE 2: Entrenchment data
+    entrenchment: Optional[list[list[int]]] = None  # Rounds of consecutive control per cell
+
 
 @app.get("/")
 def read_root():
@@ -170,6 +173,12 @@ def get_game_state():
         player_b_count = int(jnp.sum(current_game.last_final_spins == -1))
         response.player_a_territory = player_a_count
         response.player_b_territory = player_b_count
+
+    # PHASE 2: Include entrenchment data
+    entrenchment_grid = current_game.entrenchment.reshape(
+        (current_game.config.grid_size, current_game.config.grid_size)
+    )
+    response.entrenchment = [[int(val) for val in row] for row in entrenchment_grid.tolist()]
 
     return response
 

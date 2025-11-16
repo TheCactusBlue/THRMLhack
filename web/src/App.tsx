@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
-import type { PlayerType } from "./types";
+import type { PlayerType, Action } from "./types";
 import { useGameAPI } from "./hooks/useGameAPI";
 import { PlayerPanel } from "./components/PlayerPanel";
 import { GameGrid } from "./components/GameGrid";
 import { GameControls } from "./components/GameControls";
 import { GameStats } from "./components/GameStats";
+import { ActionQueue } from "./components/ActionQueue";
+import { CellTooltip } from "./components/CellTooltip";
+import { GameLegend } from "./components/GameLegend";
 
 function App() {
   const {
@@ -30,6 +33,15 @@ function App() {
   const [previewMode, setPreviewMode] = useState(false);
   const [previewData, setPreviewData] = useState<any>(null);
   const [isAnimating, setIsAnimating] = useState(false);
+
+  // PHASE 2: Action queue for undo functionality
+  const [actionQueue, setActionQueue] = useState<Action[]>([]);
+  const [showEnergyHeatmap, setShowEnergyHeatmap] = useState(false);
+  const [showCouplings, setShowCouplings] = useState(true); // Always show by default
+
+  // PHASE 3: Tooltip state
+  const [hoveredCell, setHoveredCell] = useState<[number, number] | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     createGame();
@@ -67,6 +79,11 @@ function App() {
     }
   };
 
+  // PHASE 2: Queue action instead of immediate execution
+  const queueAction = (action: Action) => {
+    setActionQueue((prev) => [...prev, action]);
+  };
+
   const handleCellClick = (row: number, col: number) => {
     // REDESIGN: Remove confirm dialogs - use shift key for direction
     if (edgeMode) {
@@ -83,7 +100,19 @@ function App() {
         if (isNeighbor) {
           // Default to increase coupling (can add shift-click later for decrease)
           const direction = 1;
-          updateCoupling(selectedCell, [row, col], direction, currentPlayer);
+
+          // Queue the action instead of executing immediately
+          queueAction({
+            id: `coupling-${Date.now()}`,
+            type: "coupling",
+            description: `Strengthen edge (${r1},${c1})↔(${row},${col})`,
+            params: {
+              cell1: selectedCell,
+              cell2: [row, col],
+              direction,
+              player: currentPlayer,
+            },
+          });
         }
         setSelectedCell(null);
       }
@@ -91,8 +120,52 @@ function App() {
       // Bias mode - default to player's direction
       // Player A = +1, Player B = -1
       const direction = currentPlayer === "A" ? 1 : -1;
-      updateBias(row, col, direction, currentPlayer);
+
+      // Queue the action instead of executing immediately
+      queueAction({
+        id: `bias-${Date.now()}`,
+        type: "bias",
+        description: `Bias cell (${row},${col}) → ${currentPlayer === "A" ? "Blue" : "Red"}`,
+        params: {
+          row,
+          col,
+          direction,
+          player: currentPlayer,
+        },
+      });
     }
+  };
+
+  // PHASE 2: Undo last action
+  const handleUndo = () => {
+    setActionQueue((prev) => prev.slice(0, -1));
+  };
+
+  // PHASE 2: Clear all queued actions
+  const handleClearAll = () => {
+    setActionQueue([]);
+  };
+
+  // PHASE 2: Commit all queued actions
+  const handleCommit = async () => {
+    for (const action of actionQueue) {
+      if (action.type === "bias") {
+        await updateBias(
+          action.params.row!,
+          action.params.col!,
+          action.params.direction,
+          action.params.player
+        );
+      } else if (action.type === "coupling") {
+        await updateCoupling(
+          action.params.cell1!,
+          action.params.cell2!,
+          action.params.direction,
+          action.params.player
+        );
+      }
+    }
+    setActionQueue([]);
   };
 
   const handleRunSampling = async () => {
@@ -157,6 +230,15 @@ function App() {
         </div>
 
         <div className="flex flex-col items-center overflow-y-auto">
+          {/* PHASE 2: Action Queue */}
+          <ActionQueue
+            actions={actionQueue}
+            onUndo={handleUndo}
+            onClearAll={handleClearAll}
+            onCommit={handleCommit}
+            disabled={loading}
+          />
+
           <GameGrid
             gameState={gameState}
             selectedCell={selectedCell}
@@ -165,7 +247,19 @@ function App() {
             previewMode={previewMode}
             previewData={previewData}
             isAnimating={isAnimating}
+            showCouplings={showCouplings}
           />
+
+          {/* PHASE 3: Cell Tooltip */}
+          {hoveredCell && gameState && (
+            <CellTooltip
+              gameState={gameState}
+              row={hoveredCell[0]}
+              col={hoveredCell[1]}
+              visible={true}
+              position={tooltipPosition}
+            />
+          )}
 
           {previewMode && previewData && (
             <div className="bg-purple-500/20 border-2 border-purple-500 rounded-md px-4 py-2 mb-2 text-sm">
@@ -204,6 +298,10 @@ function App() {
           </div>
 
           <GameStats gameState={gameState} />
+
+          <div className="mt-3">
+            <GameLegend />
+          </div>
         </div>
 
         <div className="bg-neutral-900 rounded-lg p-3 border-[3px] border-neutral-800 flex flex-col overflow-y-auto transition-all duration-300 max-lg:max-h-[200px]">

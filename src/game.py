@@ -54,11 +54,18 @@ class GameState:
     player_b_wins: int = 0
     max_rounds: int = 5
 
+    # PHASE 2: Entrenchment mechanic - track consecutive rounds of control
+    entrenchment: jnp.ndarray = None  # type: ignore  # shape (N,) - rounds of consecutive control
+    previous_round_spins: Optional[jnp.ndarray] = None  # (N,) - spins from last round
+
     def __post_init__(self):
         if self.player_a_budget is None:
             self.player_a_budget = PlayerBudget()
         if self.player_b_budget is None:
             self.player_b_budget = PlayerBudget()
+        if self.entrenchment is None:
+            n_nodes = len(self.nodes)
+            self.entrenchment = jnp.zeros((n_nodes,), dtype=jnp.int32)
 
 
 # -------------------------
@@ -358,15 +365,87 @@ def both_players_ready(game: GameState) -> bool:
     return game.player_a_ready and game.player_b_ready
 
 
+def update_entrenchment(game: GameState):
+    """
+    PHASE 2: Update entrenchment levels based on consecutive rounds of control.
+
+    Entrenchment rewards territorial stability:
+    - 0 rounds: no bonus
+    - 1 round: "Contested" (no bonus yet)
+    - 2 rounds: "Controlled" (+0.3 bias bonus)
+    - 3+ rounds: "Entrenched" (+0.6 bias bonus, capped)
+    """
+    if game.last_final_spins is None:
+        return
+
+    # Update entrenchment counters
+    if game.previous_round_spins is not None:
+        # Check which cells maintained their spin from previous round
+        maintained = (game.last_final_spins == game.previous_round_spins)
+
+        # Increment entrenchment for maintained cells, reset for flipped cells
+        game.entrenchment = jnp.where(
+            maintained,
+            game.entrenchment + 1,
+            0
+        )
+
+    # Apply automatic bias bonuses based on entrenchment
+    # Bonus = min(entrenchment * 0.3, 0.6)
+    auto_bias = jnp.minimum(game.entrenchment * 0.3, 0.6)
+
+    # Apply bonus in the direction of the current spin
+    # Player A (+1) gets positive bias, Player B (-1) gets negative bias
+    entrenchment_bias = auto_bias * game.last_final_spins
+
+    # Add entrenchment bias to existing biases
+    game.biases = game.biases + entrenchment_bias
+
+    # Store current spins for next round's comparison
+    game.previous_round_spins = game.last_final_spins.copy()
+
+
 def reset_round(game: GameState):
     """Reset for a new round: decay biases and reset budgets, but keep game progress."""
+    # PHASE 2: Update entrenchment BEFORE decaying biases
+    update_entrenchment(game)
+
     # REDESIGN: Decay biases instead of resetting to zero
     # This creates strategic continuity - your previous work still matters!
     game.biases = game.biases * game.config.bias_decay_rate
 
-    # Reset budgets
-    game.player_a_budget = PlayerBudget()
-    game.player_b_budget = PlayerBudget()
+    # PHASE 2: Dynamic token income based on territory control
+    if game.last_final_spins is not None:
+        player_a_cells = int(jnp.sum(game.last_final_spins == 1))
+        player_b_cells = int(jnp.sum(game.last_final_spins == -1))
+
+        # Base tokens
+        base_edge = 2
+        base_bias = 2
+
+        # Bonus: +1 token per 5 cells controlled
+        a_territory_bonus = player_a_cells // 5
+        b_territory_bonus = player_b_cells // 5
+
+        # Entrenchment bonus: +1 token if 3+ entrenched cells
+        a_entrenched = int(jnp.sum((game.entrenchment >= 3) & (game.last_final_spins == 1)))
+        b_entrenched = int(jnp.sum((game.entrenchment >= 3) & (game.last_final_spins == -1)))
+        a_entrenchment_bonus = 1 if a_entrenched >= 3 else 0
+        b_entrenchment_bonus = 1 if b_entrenched >= 3 else 0
+
+        # Set new budgets
+        game.player_a_budget = PlayerBudget(
+            edge_tokens=base_edge + a_territory_bonus + a_entrenchment_bonus,
+            bias_tokens=base_bias
+        )
+        game.player_b_budget = PlayerBudget(
+            edge_tokens=base_edge + b_territory_bonus + b_entrenchment_bonus,
+            bias_tokens=base_bias
+        )
+    else:
+        # First round - use default budgets
+        game.player_a_budget = PlayerBudget()
+        game.player_b_budget = PlayerBudget()
 
     # Reset ready status
     game.player_a_ready = False
