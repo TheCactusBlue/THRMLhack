@@ -36,18 +36,27 @@ class BiasUpdateRequest(BaseModel):
     row: int
     col: int
     direction: int  # +1 or -1
+    player: str = 'A'  # 'A' or 'B'
 
 
 class CouplingUpdateRequest(BaseModel):
     cell1: Tuple[int, int]
     cell2: Tuple[int, int]
     direction: int  # +1 or -1
+    player: str = 'A'  # 'A' or 'B'
 
 
 class SamplingRequest(BaseModel):
     n_warmup: int = 100
     n_samples: int = 50
     steps_per_sample: int = 2
+
+
+class PlayerBudgetResponse(BaseModel):
+    edge_tokens: int
+    bias_tokens: int
+    edge_tokens_used: int
+    bias_tokens_used: int
 
 
 class GameStateResponse(BaseModel):
@@ -61,6 +70,17 @@ class GameStateResponse(BaseModel):
     magnetization: Optional[float] = None  # Overall magnetization (-1 to 1)
     player_a_territory: Optional[int] = None  # Number of +1 spins
     player_b_territory: Optional[int] = None  # Number of -1 spins
+
+    # Turn-based game state
+    current_round: int = 1
+    player_a_budget: Optional[PlayerBudgetResponse] = None
+    player_b_budget: Optional[PlayerBudgetResponse] = None
+    player_a_ready: bool = False
+    player_b_ready: bool = False
+    player_a_wins: int = 0
+    player_b_wins: int = 0
+    max_rounds: int = 5
+    game_winner: Optional[str] = None
 
 
 @app.get("/")
@@ -100,6 +120,25 @@ def get_game_state():
         biases=current_game.biases.tolist(),
         couplings=current_game.couplings.tolist(),
         beta=float(current_game.beta),
+        current_round=current_game.current_round,
+        player_a_budget=PlayerBudgetResponse(
+            edge_tokens=current_game.player_a_budget.edge_tokens,
+            bias_tokens=current_game.player_a_budget.bias_tokens,
+            edge_tokens_used=current_game.player_a_budget.edge_tokens_used,
+            bias_tokens_used=current_game.player_a_budget.bias_tokens_used,
+        ),
+        player_b_budget=PlayerBudgetResponse(
+            edge_tokens=current_game.player_b_budget.edge_tokens,
+            bias_tokens=current_game.player_b_budget.bias_tokens,
+            edge_tokens_used=current_game.player_b_budget.edge_tokens_used,
+            bias_tokens_used=current_game.player_b_budget.bias_tokens_used,
+        ),
+        player_a_ready=current_game.player_a_ready,
+        player_b_ready=current_game.player_b_ready,
+        player_a_wins=current_game.player_a_wins,
+        player_b_wins=current_game.player_b_wins,
+        max_rounds=current_game.max_rounds,
+        game_winner=game.check_game_winner(current_game),
     )
 
     if current_game.last_final_spins is not None:
@@ -143,12 +182,16 @@ def update_bias(request: BiasUpdateRequest):
     if request.direction not in [-1, 1]:
         raise HTTPException(status_code=400, detail="Direction must be +1 or -1")
 
+    if request.player not in ['A', 'B']:
+        raise HTTPException(status_code=400, detail="Player must be 'A' or 'B'")
+
     try:
-        game.apply_bias(current_game, request.row, request.col, request.direction)
+        game.apply_bias(current_game, request.row, request.col, request.direction, request.player)
         return {
             "message": "Bias updated",
             "row": request.row,
             "col": request.col,
+            "player": request.player,
             "new_bias": float(current_game.biases[request.row * current_game.config.grid_size + request.col]),
         }
     except Exception as e:
@@ -163,17 +206,22 @@ def update_coupling(request: CouplingUpdateRequest):
     if request.direction not in [-1, 1]:
         raise HTTPException(status_code=400, detail="Direction must be +1 or -1")
 
+    if request.player not in ['A', 'B']:
+        raise HTTPException(status_code=400, detail="Player must be 'A' or 'B'")
+
     try:
         game.apply_edge_change(
             current_game,
             request.cell1,
             request.cell2,
             request.direction,
+            request.player,
         )
         return {
             "message": "Coupling updated",
             "cell1": request.cell1,
             "cell2": request.cell2,
+            "player": request.player,
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -236,6 +284,66 @@ def reset_game():
     rng_key = jax.random.key(randint(1, 9999999999))
 
     return {"message": "Game reset successfully"}
+
+
+@app.post("/game/ready/{player}")
+def set_ready(player: str, ready: bool = True):
+    if current_game is None:
+        raise HTTPException(status_code=404, detail="No active game. Create a game first.")
+
+    if player not in ['A', 'B']:
+        raise HTTPException(status_code=400, detail="Player must be 'A' or 'B'")
+
+    try:
+        game.set_player_ready(current_game, player, ready)
+        both_ready = game.both_players_ready(current_game)
+
+        return {
+            "message": f"Player {player} ready status set to {ready}",
+            "player": player,
+            "ready": ready,
+            "both_ready": both_ready,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/game/next-round")
+def next_round():
+    if current_game is None:
+        raise HTTPException(status_code=404, detail="No active game. Create a game first.")
+
+    try:
+        # First score the current round
+        if current_game.last_final_spins is None:
+            raise HTTPException(status_code=400, detail="Run sampling before starting next round")
+
+        round_winner = game.score_round(current_game)
+
+        # Check if game is over
+        game_winner = game.check_game_winner(current_game)
+
+        if game_winner:
+            return {
+                "message": f"Game over! Winner: Player {game_winner}",
+                "round_winner": round_winner,
+                "game_winner": game_winner,
+                "player_a_wins": current_game.player_a_wins,
+                "player_b_wins": current_game.player_b_wins,
+            }
+
+        # Reset for next round
+        game.reset_round(current_game)
+
+        return {
+            "message": "Round scored and new round started",
+            "round_winner": round_winner,
+            "current_round": current_game.current_round,
+            "player_a_wins": current_game.player_a_wins,
+            "player_b_wins": current_game.player_b_wins,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 def main():

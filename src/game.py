@@ -23,6 +23,14 @@ class GameConfig:
 
 
 @dataclass
+class PlayerBudget:
+    edge_tokens: int = 3
+    bias_tokens: int = 2
+    edge_tokens_used: int = 0
+    bias_tokens_used: int = 0
+
+
+@dataclass
 class GameState:
     config: GameConfig
     nodes: List[SpinNode]                    # length = N
@@ -33,6 +41,23 @@ class GameState:
     beta: jnp.ndarray                        # scalar
     last_samples: Optional[jnp.ndarray] = None   # (n_samples, N) if collected
     last_final_spins: Optional[jnp.ndarray] = None  # (N,)
+
+    # Turn-based game state
+    current_turn: int = 0  # 0 = planning phase, 1 = sampling phase, 2 = scoring phase
+    current_round: int = 1
+    player_a_budget: PlayerBudget = None  # type: ignore
+    player_b_budget: PlayerBudget = None  # type: ignore
+    player_a_ready: bool = False
+    player_b_ready: bool = False
+    player_a_wins: int = 0
+    player_b_wins: int = 0
+    max_rounds: int = 5
+
+    def __post_init__(self):
+        if self.player_a_budget is None:
+            self.player_a_budget = PlayerBudget()
+        if self.player_b_budget is None:
+            self.player_b_budget = PlayerBudget()
 
 
 # -------------------------
@@ -133,27 +158,43 @@ def create_game(config: Optional[GameConfig] = None) -> GameState:
     )
 
 
-def apply_bias(game: GameState, row: int, col: int, direction: int):
+def apply_bias(game: GameState, row: int, col: int, direction: int, player: str = 'A'):
     """
     Modify bias h_i at (row, col).
     direction = +1  -> push toward Player A (+1 spin)
     direction = -1  -> push toward Player B (-1 spin)
+    player: 'A' or 'B' - which player is making the move
     """
+    # Check if player has tokens
+    budget = game.player_a_budget if player == 'A' else game.player_b_budget
+    if budget.bias_tokens_used >= budget.bias_tokens:
+        raise ValueError(f"Player {player} has no bias tokens remaining")
+
     idx = _grid_idx(row, col, game.config.grid_size)
     delta = direction * game.config.bias_step
     # JAX arrays are immutable, so we create a new one
     game.biases = game.biases.at[idx].add(delta)
 
+    # Consume a token
+    budget.bias_tokens_used += 1
+
 
 def apply_edge_change(game: GameState,
                       cell1: Tuple[int, int],
                       cell2: Tuple[int, int],
-                      direction: int):
+                      direction: int,
+                      player: str = 'A'):
     """
     Modify coupling J_ij between two neighboring cells (row1, col1) and (row2, col2).
     direction = +1 -> strengthen alignment (cooperation)
     direction = -1 -> weaken alignment (or even anti-align if you go negative)
+    player: 'A' or 'B' - which player is making the move
     """
+    # Check if player has tokens
+    budget = game.player_a_budget if player == 'A' else game.player_b_budget
+    if budget.edge_tokens_used >= budget.edge_tokens:
+        raise ValueError(f"Player {player} has no edge tokens remaining")
+
     r1, c1 = cell1
     r2, c2 = cell2
     i = _grid_idx(r1, c1, game.config.grid_size)
@@ -168,6 +209,9 @@ def apply_edge_change(game: GameState,
 
     delta = direction * game.config.coupling_step
     game.couplings = game.couplings.at[edge_idx].add(delta)
+
+    # Consume a token
+    budget.edge_tokens_used += 1
 
 
 def set_beta(game: GameState, beta_value: float):
@@ -296,3 +340,80 @@ def run_sampling(game: GameState,
     game.last_final_spins = final_spins
 
     return final_board, spin_samples
+
+
+def set_player_ready(game: GameState, player: str, ready: bool = True):
+    """Mark a player as ready or not ready."""
+    if player == 'A':
+        game.player_a_ready = ready
+    elif player == 'B':
+        game.player_b_ready = ready
+    else:
+        raise ValueError(f"Invalid player: {player}")
+
+
+def both_players_ready(game: GameState) -> bool:
+    """Check if both players are ready."""
+    return game.player_a_ready and game.player_b_ready
+
+
+def reset_round(game: GameState):
+    """Reset for a new round: reset biases and budgets, but keep game progress."""
+    # Reset biases to zero
+    game.biases = jnp.zeros_like(game.biases)
+
+    # Reset budgets
+    game.player_a_budget = PlayerBudget()
+    game.player_b_budget = PlayerBudget()
+
+    # Reset ready status
+    game.player_a_ready = False
+    game.player_b_ready = False
+
+    # Clear last board state
+    game.last_samples = None
+    game.last_final_spins = None
+
+    # Advance round
+    game.current_round += 1
+
+
+def score_round(game: GameState) -> str:
+    """
+    Score the current round based on territory control.
+    Returns the winner: 'A', 'B', or 'tie'
+    """
+    if game.last_final_spins is None:
+        raise ValueError("No sampling results to score. Run sampling first.")
+
+    player_a_count = int(jnp.sum(game.last_final_spins == 1))
+    player_b_count = int(jnp.sum(game.last_final_spins == -1))
+
+    if player_a_count > player_b_count:
+        game.player_a_wins += 1
+        return 'A'
+    elif player_b_count > player_a_count:
+        game.player_b_wins += 1
+        return 'B'
+    else:
+        return 'tie'
+
+
+def check_game_winner(game: GameState) -> Optional[str]:
+    """
+    Check if the game is over and return the winner.
+    Returns 'A', 'B', or None if game is not over.
+    """
+    if game.player_a_wins > game.max_rounds // 2:
+        return 'A'
+    elif game.player_b_wins > game.max_rounds // 2:
+        return 'B'
+    elif game.current_round > game.max_rounds:
+        # All rounds played, highest score wins
+        if game.player_a_wins > game.player_b_wins:
+            return 'A'
+        elif game.player_b_wins > game.player_a_wins:
+            return 'B'
+        else:
+            return 'tie'
+    return None
