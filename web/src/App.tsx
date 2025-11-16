@@ -25,7 +25,6 @@ function App() {
     null
   );
   const [edgeMode, setEdgeMode] = useState(false);
-  const [showConfidence, setShowConfidence] = useState(false);
   const [currentPlayer, setCurrentPlayer] = useState<PlayerType>("A");
   const [roundWinner, setRoundWinner] = useState<string | null>(null);
 
@@ -163,20 +162,6 @@ function App() {
                 Next Round →
               </button>
             )}
-
-            <button
-              className={`view-btn ${!showConfidence ? "active" : ""}`}
-              onClick={() => setShowConfidence(false)}
-            >
-              Spins
-            </button>
-            <button
-              className={`view-btn ${showConfidence ? "active" : ""}`}
-              onClick={() => setShowConfidence(true)}
-              disabled={!gameState.spin_confidence}
-            >
-              Confidence
-            </button>
           </div>
 
           <GameStats gameState={gameState} />
