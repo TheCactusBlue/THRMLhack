@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import "./App.css";
 import type { PlayerType } from "./types";
 import { useGameAPI } from "./hooks/useGameAPI";
 import { PlayerPanel } from "./components/PlayerPanel";
@@ -92,9 +91,9 @@ function App() {
 
   if (!gameState) {
     return (
-      <div className="app">
-        <h1>THRMLHack Energy Battle</h1>
-        <p>Loading...</p>
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <h1 className="text-4xl font-bold mb-4">THRMLHack Energy Battle</h1>
+        <p className="text-gray-400">Loading...</p>
       </div>
     );
   }
@@ -102,7 +101,7 @@ function App() {
   const bothReady = gameState.player_a_ready && gameState.player_b_ready;
 
   return (
-    <div className="app-container">
+    <div className="max-w-full h-screen m-0 p-2 flex flex-col overflow-hidden">
       <GameControls
         gameState={gameState}
         edgeMode={edgeMode}
@@ -113,19 +112,25 @@ function App() {
         onCreateGame={createGame}
       />
 
-      {message && <div className="message">{message}</div>}
+      {message && (
+        <div className="bg-blue-500 text-white px-4 py-2 rounded-md mb-2 text-sm text-center animate-[slideIn_0.3s_ease-out]">
+          {message}
+        </div>
+      )}
 
       {gameState.game_winner && (
-        <div className="game-winner">
+        <div className="text-xl font-bold text-emerald-500 px-4 py-2 mb-2 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-md border-2 border-emerald-500 text-center animate-pulse">
           🏆 Game Winner: Player {gameState.game_winner}!
         </div>
       )}
       {roundWinner && !gameState.game_winner && (
-        <div className="round-winner">Last Round: Player {roundWinner} Won</div>
+        <div className="text-base font-semibold text-amber-400 px-3 py-2 mb-2 bg-amber-400/10 rounded-md border-2 border-amber-400 text-center">
+          Last Round: Player {roundWinner} Won
+        </div>
       )}
 
-      <div className="game-layout">
-        <div className="side-panel">
+      <div className="grid grid-cols-[200px_1fr_200px] gap-3 flex-1 overflow-hidden max-lg:grid-cols-1">
+        <div className="bg-neutral-900 rounded-lg p-3 border-[3px] border-neutral-800 flex flex-col overflow-y-auto transition-all duration-300 max-lg:max-h-[200px]">
           <PlayerPanel
             player="A"
             gameState={gameState}
@@ -136,7 +141,7 @@ function App() {
           />
         </div>
 
-        <div className="center-panel">
+        <div className="flex flex-col items-center overflow-y-auto">
           <GameGrid
             gameState={gameState}
             selectedCell={selectedCell}
@@ -144,11 +149,11 @@ function App() {
             onCellClick={handleCellClick}
           />
 
-          <div className="action-bar">
+          <div className="flex gap-2 justify-center flex-wrap mb-2 max-sm:flex-col max-sm:w-full">
             <button
               onClick={runSampling}
               disabled={loading || !bothReady}
-              className="sample-btn"
+              className="px-6 py-3 text-base font-bold bg-gradient-to-br from-emerald-500 to-emerald-600 border-none rounded-lg text-white cursor-pointer transition-all duration-300 shadow-[0_4px_12px_rgba(16,185,129,0.3)] hover:enabled:-translate-y-0.5 hover:enabled:shadow-[0_6px_20px_rgba(16,185,129,0.4)] disabled:opacity-50 disabled:cursor-not-allowed max-sm:w-full"
             >
               {bothReady ? "⚡ Run Sampling" : "⏳ Waiting..."}
             </button>
@@ -157,7 +162,7 @@ function App() {
               <button
                 onClick={handleNextRound}
                 disabled={loading}
-                className="next-btn"
+                className="px-5 py-2.5 text-sm font-semibold bg-blue-500 border-none rounded-md text-white cursor-pointer transition-all duration-200 hover:enabled:bg-blue-600 hover:enabled:shadow-[0_4px_12px_rgba(59,130,246,0.3)] max-sm:w-full"
               >
                 Next Round →
               </button>
@@ -167,7 +172,7 @@ function App() {
           <GameStats gameState={gameState} />
         </div>
 
-        <div className="side-panel">
+        <div className="bg-neutral-900 rounded-lg p-3 border-[3px] border-neutral-800 flex flex-col overflow-y-auto transition-all duration-300 max-lg:max-h-[200px]">
           <PlayerPanel
             player="B"
             gameState={gameState}

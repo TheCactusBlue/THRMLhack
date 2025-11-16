@@ -38,9 +38,9 @@ export function GameGrid({
   };
 
   return (
-    <div className="grid-wrapper">
+    <div className="flex justify-center mb-3">
       <div
-        className="grid"
+        className="grid gap-[3px] p-3 bg-neutral-900 rounded-lg shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
         style={{
           gridTemplateColumns: `repeat(${gameState.grid_size}, 55px)`,
         }}
@@ -49,12 +49,16 @@ export function GameGrid({
           Array.from({ length: gameState.grid_size }).map((_, col) => (
             <div
               key={`${row}-${col}`}
-              className={`cell ${isSelected(row, col) ? "selected" : ""}`}
+              className={`w-[55px] h-[55px] flex items-center justify-center rounded-md cursor-pointer transition-all duration-200 border-2 border-transparent text-[1.3em] font-bold hover:scale-105 hover:border-gray-500 hover:shadow-[0_4px_12px_rgba(255,255,255,0.2)] ${
+                isSelected(row, col)
+                  ? "!border-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.5)]"
+                  : ""
+              } max-sm:w-[45px] max-sm:h-[45px] max-sm:text-[1.1em]`}
               style={{ backgroundColor: getCellColor(row, col) }}
               onClick={() => onCellClick(row, col)}
             >
               {gameState.spin_confidence && (
-                <span className="confidence-value">
+                <span className="text-white text-shadow-[0_2px_4px_rgba(0,0,0,0.5)] text-[0.85em] font-semibold">
                   {(gameState.spin_confidence[row][col] * 100).toFixed(0)}
                 </span>
               )}
