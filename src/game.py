@@ -261,23 +261,38 @@ def run_sampling(game: GameState,
     )
 
     # For many examples, `samples` is an array of shape (n_samples, N),
-    # with spins in {+1, -1}. If it’s nested, you may need to index into it.
+    # with spins as booleans. If it's nested, you may need to index into it.
     # Here we assume it's a simple array or the first element is.
     if isinstance(samples, (list, tuple)):
         samples_array = samples[0]
     else:
         samples_array = samples
 
+    # The samples come back as shape (n_samples, N) where the first index is for
+    # each block being sampled. Since we're sampling [all_nodes_block], we need samples_array[0]
+    if samples_array.ndim == 3:
+        # If shape is (1, n_samples, N), take the first element
+        samples_array = samples_array[0]
+
+    # Convert boolean samples to spin values: True -> +1, False -> -1
+    spin_samples = jnp.where(samples_array, 1.0, -1.0)  # shape (n_samples, N)
+
     # Aggregate samples: majority vote per node
-    mean_spins = jnp.mean(samples_array, axis=0)  # shape (N,)
-    final_spins = jnp.sign(mean_spins)
-    # If any are exactly 0 (rare), treat them as +1 by default
-    final_spins = jnp.where(final_spins == 0, 1.0, final_spins)
+    # Count positive votes (spins = +1) for each node
+    positive_votes = jnp.sum(spin_samples > 0, axis=0)  # shape (N,)
+    negative_votes = jnp.sum(spin_samples < 0, axis=0)  # shape (N,)
+
+    # Majority vote: if more positive votes, assign +1; otherwise -1
+    final_spins = jnp.where(positive_votes > negative_votes, 1.0, -1.0)
+
+    # For ties, use the last sample's value to break the tie
+    ties = (positive_votes == negative_votes)
+    final_spins = jnp.where(ties, spin_samples[-1], final_spins)
 
     final_board = final_spins.reshape((grid_size, grid_size))
 
-    # Store diagnostics on game state
-    game.last_samples = samples_array
+    # Store diagnostics on game state (store as spin values, not booleans)
+    game.last_samples = spin_samples
     game.last_final_spins = final_spins
 
-    return final_board, samples_array
+    return final_board, spin_samples
