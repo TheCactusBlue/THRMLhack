@@ -1,12 +1,12 @@
-import type { GameState, PlayerType } from '../types'
+import type { GameState, PlayerType } from "../types";
 
 interface PlayerPanelProps {
-  player: PlayerType
-  gameState: GameState
-  currentPlayer: PlayerType
-  bothReady: boolean
-  onSwitchPlayer: (player: PlayerType) => void
-  onToggleReady: () => void
+  player: PlayerType;
+  gameState: GameState;
+  currentPlayer: PlayerType;
+  bothReady: boolean;
+  onSwitchPlayer: (player: PlayerType) => void;
+  onToggleReady: () => void;
 }
 
 export function PlayerPanel({
@@ -17,11 +17,14 @@ export function PlayerPanel({
   onSwitchPlayer,
   onToggleReady,
 }: PlayerPanelProps) {
-  const budget = player === 'A' ? gameState.player_a_budget : gameState.player_b_budget
-  const isReady = player === 'A' ? gameState.player_a_ready : gameState.player_b_ready
-  const wins = player === 'A' ? gameState.player_a_wins : gameState.player_b_wins
-  const isActive = currentPlayer === player
-  const color = player === 'A' ? '#3b82f6' : '#ef4444'
+  const budget =
+    player === "A" ? gameState.player_a_budget : gameState.player_b_budget;
+  const isReady =
+    player === "A" ? gameState.player_a_ready : gameState.player_b_ready;
+  const wins =
+    player === "A" ? gameState.player_a_wins : gameState.player_b_wins;
+  const isActive = currentPlayer === player;
+  const color = player === "A" ? "#3b82f6" : "#ef4444";
 
   return (
     <div className="flex flex-col gap-2">
@@ -50,13 +53,15 @@ export function PlayerPanel({
         <div className="flex justify-between items-center px-2 py-1 bg-neutral-800 rounded text-[0.75rem]">
           <span className="font-semibold text-gray-300">🔗 Edge:</span>
           <span className="font-bold text-emerald-500 text-[0.75rem]">
-            {budget ? budget.edge_tokens - budget.edge_tokens_used : 0}/{budget?.edge_tokens || 0}
+            {budget ? budget.edge_tokens - budget.edge_tokens_used : 0}/
+            {budget?.edge_tokens || 0}
           </span>
         </div>
         <div className="flex justify-between items-center px-2 py-1 bg-neutral-800 rounded text-[0.75rem]">
           <span className="font-semibold text-gray-300">⚡ Bias:</span>
           <span className="font-bold text-emerald-500 text-[0.75rem]">
-            {budget ? budget.bias_tokens - budget.bias_tokens_used : 0}/{budget?.bias_tokens || 0}
+            {budget ? budget.bias_tokens - budget.bias_tokens_used : 0}/
+            {budget?.bias_tokens || 0}
           </span>
         </div>
       </div>
@@ -65,27 +70,28 @@ export function PlayerPanel({
         <button
           className={`py-1.5 px-1.5 rounded font-semibold text-[0.7rem] border-2 cursor-pointer transition-all duration-200 ${
             currentPlayer === player
-              ? 'bg-blue-500 border-blue-500 text-white'
-              : 'border-neutral-700 bg-neutral-800 text-gray-300 hover:enabled:border-neutral-600 hover:enabled:bg-neutral-700'
+              ? "bg-blue-500 border-blue-500 text-white"
+              : "border-neutral-700 bg-neutral-800 text-gray-300 hover:enabled:border-neutral-600 hover:enabled:bg-neutral-700"
           } disabled:opacity-50 disabled:cursor-not-allowed`}
           onClick={() => onSwitchPlayer(player)}
           disabled={bothReady}
         >
-          {currentPlayer === player ? '✓ Playing' : 'Switch'}
+          {currentPlayer === player ? "✓ Playing" : "Switch"}
         </button>
 
         <button
           className={`py-1.5 px-1 rounded font-semibold text-[0.7rem] border-2 cursor-pointer transition-all duration-200 ${
             isReady
-              ? 'bg-emerald-500 border-emerald-500 text-white'
-              : 'border-neutral-700 bg-neutral-800 text-gray-300 hover:enabled:border-neutral-600 hover:enabled:bg-neutral-700'
+              ? "bg-emerald-500 border-emerald-500 text-white"
+              : "border-neutral-700 bg-neutral-800 text-gray-300 hover:enabled:border-neutral-600 hover:enabled:bg-neutral-700"
           } disabled:opacity-50 disabled:cursor-not-allowed`}
           onClick={onToggleReady}
           disabled={currentPlayer !== player}
         >
-          {isReady ? '✓' : 'Ready'}
+          {isReady ? "✓" : "Ready"}
         </button>
       </div>
+      <img src="/characters/ch1.png" />
     </div>
-  )
+  );
 }
