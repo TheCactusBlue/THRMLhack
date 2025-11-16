@@ -1,0 +1,10 @@
+{
+  "name": "thrmlhack",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Thermal hackathon project",
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

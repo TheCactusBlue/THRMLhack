@@ -12,7 +12,6 @@ export function GameGrid({
   gameState,
   showConfidence,
   selectedCell,
-  edgeMode,
   onCellClick,
 }: GameGridProps) {
   const getCellColor = (row: number, col: number) => {

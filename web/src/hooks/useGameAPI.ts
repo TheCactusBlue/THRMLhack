@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import type { GameState, PlayerType } from '../types'
 
 const API_URL = 'http://localhost:8000'
@@ -13,7 +13,7 @@ export function useGameAPI() {
     setTimeout(() => setMessage(''), 3000)
   }
 
-  const fetchGameState = async () => {
+  const fetchGameState = useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/game/state`)
       const data = await response.json()
@@ -21,9 +21,9 @@ export function useGameAPI() {
     } catch (error) {
       showMessage('Error fetching game state: ' + error)
     }
-  }
+  }, [])
 
-  const createGame = async () => {
+  const createGame = useCallback(async () => {
     setLoading(true)
     try {
       await fetch(`${API_URL}/game/create`, {
@@ -44,9 +44,9 @@ export function useGameAPI() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [fetchGameState])
 
-  const updateBias = async (row: number, col: number, direction: number, player: PlayerType) => {
+  const updateBias = useCallback(async (row: number, col: number, direction: number, player: PlayerType) => {
     setLoading(true)
     try {
       await fetch(`${API_URL}/game/bias`, {
@@ -56,15 +56,15 @@ export function useGameAPI() {
       })
       await fetchGameState()
       showMessage(`Player ${player} updated bias at (${row}, ${col})`)
-    } catch (error: any) {
-      const errorMsg = error.message || error
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
       showMessage('Error: ' + errorMsg)
     } finally {
       setLoading(false)
     }
-  }
+  }, [fetchGameState])
 
-  const updateCoupling = async (
+  const updateCoupling = useCallback(async (
     cell1: [number, number],
     cell2: [number, number],
     direction: number,
@@ -79,15 +79,15 @@ export function useGameAPI() {
       })
       await fetchGameState()
       showMessage(`Player ${player} updated coupling between (${cell1}) and (${cell2})`)
-    } catch (error: any) {
-      const errorMsg = error.message || error
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
       showMessage('Error: ' + errorMsg)
     } finally {
       setLoading(false)
     }
-  }
+  }, [fetchGameState])
 
-  const runSampling = async () => {
+  const runSampling = useCallback(async () => {
     setLoading(true)
     try {
       await fetch(`${API_URL}/game/sample`, {
@@ -106,9 +106,9 @@ export function useGameAPI() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [fetchGameState])
 
-  const resetGame = async () => {
+  const resetGame = useCallback(async () => {
     setLoading(true)
     try {
       await fetch(`${API_URL}/game/reset`, { method: 'POST' })
@@ -119,9 +119,9 @@ export function useGameAPI() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [fetchGameState])
 
-  const toggleReady = async (player: PlayerType, currentReady: boolean) => {
+  const toggleReady = useCallback(async (player: PlayerType, currentReady: boolean) => {
     setLoading(true)
     try {
       await fetch(`${API_URL}/game/ready/${player}?ready=${!currentReady}`, {
@@ -134,9 +134,9 @@ export function useGameAPI() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [fetchGameState])
 
-  const nextRound = async () => {
+  const nextRound = useCallback(async () => {
     setLoading(true)
     try {
       const response = await fetch(`${API_URL}/game/next-round`, { method: 'POST' })
@@ -156,7 +156,7 @@ export function useGameAPI() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [fetchGameState])
 
   return {
     gameState,

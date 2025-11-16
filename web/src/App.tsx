@@ -29,7 +29,7 @@ function App() {
 
   useEffect(() => {
     createGame()
-  }, [])
+  }, [createGame])
 
   const handleResetGame = async () => {
     await resetGame()
