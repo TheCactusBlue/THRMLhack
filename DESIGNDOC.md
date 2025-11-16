@@ -107,204 +107,422 @@ You can avoid:
 
 So it’s very feasible **if you resist feature creep**.
 
-# Gameplay
+# Gameplay (REDESIGNED for Fun & Strategy)
 
-# 🎮 **Turn Sequence (Simple, Intuitive, Balanced)**
+## 🎯 Core Design Principles
 
-This design assumes 2 players (A & B), each trying to reshape the energy landscape of a small Ising grid.
-
----
-
-## **Turn 0 — Setup**
-
-- Board initializes with random +1/–1 spins, or a clean neutral starting state.
-- All couplings (J\_{ij}) start at a default value (e.g., 0.5).
-- All biases (h_i) start at 0.
+1. **Fast Setup, Dramatic Resolution** - Reduce planning time, increase payoff tension
+2. **Strategic Continuity** - Actions echo across rounds
+3. **Skill > Luck** - Reduce randomness, increase player control
+4. **Visible Physics** - Players should see and understand the energy landscape
 
 ---
 
-## **Turn 1 — Player Planning Phase**
+# 🎮 **Redesigned Turn Sequence**
 
-Both players receive **a fresh Influence Budget**, e.g.:
-
-- **3 Edge Tokens** → can strengthen or weaken an edge
-- **2 Bias Tokens** → can apply a bias to a tile
-- **1 Temperature Shard (optional)** → adjust β for the next sampling run
-
-Then:
-
-### **Step 1: Player A Adjusts the Board**
-
-Player A can:
-
-- Click a tile → add positive bias (favor +1)
-- Shift-click a tile → add negative bias (favor −1)
-- Click an edge between tiles → increase alignment strength
-- Shift-click an edge → weaken alignment
-- Use slider to tweak temperature β (+ randomness / − randomness)
-
-A small animation highlights their changes.
-
-### **Step 2: Player B Adjusts the Board**
-
-Player B gets the same actions, but:
-
-- Their moves appear in another color (e.g., blue vs red)
-- UI shows how many tokens remain
-
-Both players modify the **same shared PGM**.
-
-**Important:**
-You can optionally hide Player A’s moves from Player B for a “fog of war” feeling — but for a hackathon demo, **keeping all moves visible is simpler and more understandable**.
+This design creates a strategic, engaging game where physics matters but skill dominates.
 
 ---
 
-## **Turn 2 — THRML Sampling Phase (“The World Reacts”)**
+## **Turn 0 — Game Setup**
+
+- Board initializes with random +1/–1 spins
+- All couplings (J\_{ij}) start at base value (0.5)
+- All biases (h_i) start at 0
+- **Beta (inverse temperature) set to 3.0** (more deterministic than original 1.0)
+- Each player starts with equal resources
+
+---
+
+## **Turn 1 — Planning Phase (Fast & Strategic)**
+
+### **NEW: Action Card System**
+
+Instead of clicking individual cells, players use **Action Cards**:
+
+#### Each player:
+1. **Draws 5 random action cards** from deck
+2. **Has token budget:**
+   - Base: 3 edge tokens + 2 bias tokens
+   - Bonus tokens if controlling territory from previous round
+3. **Plays 2-3 cards** (limited by budget)
+
+#### Card Examples:
+
+**Offensive Cards:**
+- **⚔️ INFILTRATE** (Cost: 2 bias) - Apply strong bias (+1.5) to 3 adjacent cells
+- **💥 DISRUPTION** (Cost: 3 edge) - Weaken 4 edges in a 2x2 region (-0.5 each)
+
+**Defensive Cards:**
+- **🛡️ FORTRESS** (Cost: 3 edge) - Strengthen edges in 3x3 region (+0.5 each)
+- **⚡ ANCHOR** (Cost: 2 bias) - Strong bias to 1 cell + 4 neighbors
+
+**Special Cards:**
+- **🔥 HEAT WAVE** (Cost: 1 special) - Reduce beta locally (add chaos)
+- **❄️ FREEZE** (Cost: 1 special) - Increase beta locally (lock state)
+
+#### How to Play:
+1. Click card in hand
+2. Click region on grid
+3. Effect applies instantly (visible preview)
+4. Repeat until satisfied
+5. Click READY
+
+**Benefits:** Setup time reduced from 3 min → 30 seconds
+
+---
+
+## **Turn 2 — Preview Phase (NEW)**
+
+Before sampling, players can:
+
+1. **Click "PREVIEW" button**
+2. **System runs 10 quick samples** (fast, lightweight)
+3. **Shows probability heatmap:**
+   - Blue intensity = P(cell becomes +1)
+   - Red intensity = P(cell becomes -1)
+4. **Displays predicted score:** "Player A: 14.2 ± 2.1 cells"
+5. **Players can adjust actions** if preview looks bad
+
+**Benefits:** Reduces "I didn't know that would happen" frustration
+
+---
+
+## **Turn 3 — Sampling Phase (Dramatic & Visible)**
 
 When both players press READY:
 
-1. Show a mini animation:
-   **“Rebalancing the World…”**
-2. Run THRML:
+### **Phase 3.1: Warmup Animation** (3-5 seconds)
+- Cells rapidly flicker between red/blue
+- Energy graph shows E(x) decreasing
+- "System equilibrating..." message
+- Gradually stabilizes toward likely states
 
-   - 100 warmup steps
-   - 50 Gibbs samples
-   - Aggregate sign (majority vote) or take final state
+### **Phase 3.2: Sampling Visualization** (5-7 seconds)
+- Show 50 samples as rapid "flashes"
+- Cells build up glow intensity based on frequency
+- Probability overlay updates: "67% blue, 33% red"
+- Players see distribution emerging in real-time
 
-3. Update the grid colors in real-time:
+### **Phase 3.3: Final Resolution** (2-3 seconds)
+- Cells snap to final majority states
+- Territory conquest animation (cells flip like dominoes)
+- Energy bars fill up
+- Particle effects for dramatic reveal
 
-   - red = +1 (Player A)
-   - blue = –1 (Player B)
-   - optional color intensity = sample confidence
+**Total: 10-15 seconds** (vs. instant in original)
 
-You can even show a small bar plot:
-
-- proportion of +1 vs −1 states over the samples
-
-**This sampling moment is the “magic” that sells the game**.
-
----
-
-## **Turn 3 — Scoring Phase**
-
-Two possible scoring systems (both good):
-
-### **Option A — Tile Majority**
-
-Whoever controls more tiles (spin direction) wins the round.
-
-### **Option B — Territory Stability**
-
-For each tile:
-
-- if spin aligns with the tiles around it → +more points
-- if spin is unstable → fewer points
-
-_Option A is simpler, and I recommend it for hackathons._
+**Benefits:** Creates tension, makes physics visible, satisfying payoff
 
 ---
 
-## **Turn 4 — Next Round or Game End**
+## **Turn 4 — Final Push Phase (NEW)**
 
-- Reset biases to zero.
-- Keep couplings slightly persistent (fun strategic layer), _or_ reset everything.
-- Re-run 3–5 rounds total.
+After sampling but before scoring:
 
-The winner is the player who wins the majority of rounds.
+1. **Each player gets 1 "Claim" token**
+2. **Can force 1 cell to their color** (100% guaranteed, no sampling)
+3. **Both players act simultaneously**
+4. **Then score final board**
 
----
+**Strategic depth:**
+- Use on contested cells to secure close victories
+- Can't save you if losing badly
+- Creates clutch moments
+- Adds skill to critical juncture
 
-# 📐 **Top-Level Layout**
-
-```
- ----------------------------------------------
-|                                              |
-|                 GAME TITLE                   |
-|          “Energy Matching Battle”            |
-|                                              |
- ----------------------------------------------
-
- ---------------------------------------------------------
-|   Left Panel (Player A)   |   Main Grid     | Right Panel (Player B) |
-|                           |                 |                         |
- ---------------------------------------------------------
-```
+**Benefits:** Reduces "I lost to pure RNG" complaints
 
 ---
 
-## **Left Panel — Player A Controls**
+## **Turn 5 — Scoring Phase**
+
+**Simple Tile Majority:**
+- Count cells with +1 (Player A) vs -1 (Player B)
+- More cells = win the round
+- Ties broken by total energy (lower energy wins)
+
+**Additional Victory Conditions:**
+- **Total Dominance:** Control all 25 cells → instant win
+- **Perfect Harmony:** Achieve >95% probability on all your cells → instant win
+
+---
+
+## **Turn 6 — Round Reset & Resource Management (NEW)**
+
+### **What Persists (Strategic Continuity):**
+
+1. **Biases decay by 50%** (not reset to 0)
+   - Example: +2.0 bias → +1.0 next round
+   - Rewards building on previous work
+
+2. **Couplings persist fully**
+   - All edge modifications carry forward
+   - Creates long-term board evolution
+
+3. **Entrenchment bonuses:**
+   - Cells controlled for 2+ consecutive rounds get auto-bias (+0.3 per round)
+   - Max +0.6 at 3+ rounds
+   - Holding territory becomes valuable
+
+4. **Dynamic token income:**
+   - Base: 2 edge + 2 bias
+   - +1 token per 5 cells controlled
+   - +1 bonus if 3+ entrenched cells
+   - Winner gets slight resource advantage
+
+### **What Resets:**
+- Player ready flags
+- Current round increments
+- Draw new 5 cards for next round
+
+---
+
+## **Game End**
+
+- **Best of 5 rounds** (unchanged)
+- Winner = first to 3 round wins
+- If tied at 2-2 after Round 5, play tiebreaker round
+
+---
+
+# 🎯 **Why This Redesign Solves the Problems**
+
+| Problem | Original | Redesigned | Fix |
+|---------|----------|------------|-----|
+| **Setup too slow** | 2-3 min clicking cells | 30 sec playing cards | ✅ 4x faster |
+| **Resolution too fast** | 0.5 sec instant | 10-15 sec animated | ✅ Dramatic tension |
+| **No strategic continuity** | Biases reset to 0 | Decay + entrenchment + resources | ✅ Deep strategy |
+| **Too much randomness** | Beta=1.0, high variance | Beta=3.0, preview, final push | ✅ Skill matters |
+| **Unintuitive UI** | Click + confirm dialogs | Drag & drop, visual feedback | ✅ Smooth interaction |
+
+---
+
+# 📊 **Expected Player Experience**
+
+### Round 1:
+- **Setup (30s):** "I'll play Fortress on center + Anchor on corner"
+- **Preview:** "Hmm, 62% likely to win... good!"
+- **Sampling (12s):** "The cells are stabilizing... YES! 16 cells!"
+- **Feeling:** Smart, satisfied, saw physics work
+
+### Round 2:
+- **Setup (25s):** "My center is entrenched (+0.3 bonus), I'll invade their side with Infiltrate"
+- **Preview:** "Might lose 3 cells... let me adjust with Heat Wave"
+- **Sampling (15s):** "High variance in contested zone... 14 cells, but stronger entrenchment"
+- **Feeling:** Adapting strategy, making informed decisions
+
+### Round 3:
+- **Setup (20s):** "I have more tokens (won Round 2), big push time!"
+- **Final Push:** "Close! I'll claim this cell to secure the win!"
+- **Result:** "YES! Won by 1 cell! That was clutch!"
+- **Feeling:** Skilled play mattered, comeback possible
+
+### Post-Game:
+- **"That was intense! Want to try different cards next time"**
+- **"I understand coupling now... thick edges mean stable alignment"**
+- **Replayability:** ✅ YES
+
+---
+
+# 📐 **Redesigned UI Layout (Card-Based)**
 
 ```
-Player A Controls (Red)
------------------------
-Influence Budget:
-• 3 Edge Tokens
-• 2 Bias Tokens
-• β Shard (optional)
-
-Actions:
-[ ] Add positive bias (+1)
-[ ] Add negative bias (-1)
-[ ] Strengthen edge
-[ ] Weaken edge
-
-Temperature (β):
-[ Slider  - -●---  ]
-
-[ READY ]
+┌───────────────────────────────────────────────────────────────┐
+│  THRMLHack - Energy Battle       Round 2/5   [Help] [Reset]   │
+│  Player A: 2 wins  |  Player B: 1 win                         │
+├─────────────┬─────────────────────────────┬───────────────────┤
+│             │                             │                   │
+│  PLAYER A   │      5×5 GAME GRID          │    PLAYER B       │
+│  (Blue)     │                             │    (Red)          │
+│             │   [Interactive board with   │                   │
+│  ┌────────┐ │    animated cells, edge     │   ┌────────┐     │
+│  │ Score  │ │    visualizations, hover    │   │ Score  │     │
+│  │ 14/25  │ │    tooltips]                │   │ 11/25  │     │
+│  └────────┘ │                             │   └────────┘     │
+│             │   Cells show:               │                   │
+│  Resources: │   - Color (blue/red/gray)   │   Resources:      │
+│  🔗 Edge: 4 │   - Confidence % (overlay)  │   🔗 Edge: 3      │
+│  ⚡ Bias: 3 │   - Entrenchment marker     │   ⚡ Bias: 2      │
+│             │   - Glow effects            │                   │
+│  [PREVIEW]  │                             │   [READY]         │
+│  [READY]    │   [Animated during sampling]│                   │
+│             │                             │                   │
+├─────────────┴─────────────────────────────┴───────────────────┤
+│                                                                │
+│  YOUR HAND (Current Player):                                  │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌─────┐│
+│  │    ⚔️     │ │    🛡️     │ │    ⚡     │ │    🔥     │ │ ❄️  ││
+│  │INFILTRATE│ │ FORTRESS │ │  ANCHOR  │ │HEAT WAVE │ │FRZE ││
+│  │          │ │          │ │          │ │          │ │     ││
+│  │Cost: 2⚡ │ │Cost: 3🔗 │ │Cost: 2⚡ │ │Cost: 1sp │ │Cost:││
+│  │Bias 3    │ │Strengthen│ │Bias 1+4  │ │Reduce β  │ │Inc. ││
+│  │adjacent  │ │edges 3x3 │ │neighbors │ │in region │ │β   ││
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └─────┘│
+│                                                                │
+│  Click card, then click grid region to play                   │
+│                                                                │
+├────────────────────────────────────────────────────────────────┤
+│  GAME STATUS & FEEDBACK:                                       │
+│  ┌────────────────────┬──────────────────┬───────────────────┐│
+│  │ Energy: -24.3      │ Magnetization:   │ System Message:   ││
+│  │ (lower = stable)   │ +0.12 (A ahead)  │ "Waiting for both ││
+│  │                    │                  │  players to ready"││
+│  │ [Energy graph____] │ A: ████████ 56%  │                   ││
+│  │                    │ B: ████▌    44%  │                   ││
+│  └────────────────────┴──────────────────┴───────────────────┘│
+└────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## **Main Panel — The Board**
+## **Main Grid Features (Center Panel)**
 
-A simple 5×5 grid of squares:
+### **Cell Visualization:**
+- **Size:** 55px × 55px responsive cells
+- **Color coding:**
+  - Blue = Player A control (+1 spin)
+  - Red = Player B control (-1 spin)
+  - Gray = neutral/uncertain
+  - **Intensity:** Based on confidence % (darker = more certain)
+- **Overlays:**
+  - White text: Confidence percentage (e.g., "87%")
+  - Small badge: Entrenchment level (⭐⭐ = 2 rounds held)
+  - Glow effect: Recently modified cells
+- **Edges between cells:**
+  - Line thickness = coupling strength
+  - Thicker = stronger alignment force
+  - Animated pulse for modified edges
 
-- Click tile = apply bias
-- Click boundary/edge = adjust coupling
-- Mouseover shows the current J or h values
+### **During Sampling Animation:**
+- **Phase 1 (Warmup):** Rapid flickering between states
+- **Phase 2 (Sampling):** Ghost overlays showing sample distribution
+- **Phase 3 (Resolution):** Domino-effect cell flipping, particle bursts
 
-Example:
-
+### **Hover Tooltips:**
 ```
-+-----+-----+-----+-----+-----+
-|  A  |  B  |  A  |  A  |  B  |
-+-----+-----+-----+-----+-----+
-|  B  |  B  |  A  |  B  |  A  |
-+-----+-----+-----+-----+-----+
-...
+┌─────────────────────────────┐
+│  Cell (2, 3)                │
+│  ─────────────────────────  │
+│  Spin: +1 (Blue - Player A) │
+│  Bias: +0.8                 │
+│  Entrenchment: 2 rounds     │
+│  Neighbors: 4 edges         │
+│  ─────────────────────────  │
+│  Predicted hold prob: 88%   │
+└─────────────────────────────┘
 ```
-
-Each cell filled color-coded:
-
-- Red = Player A control
-- Blue = Player B control
-- White/gray = neutral
-
-During sampling, cells animate (fade) to new colors.
 
 ---
 
-## **Right Panel — Player B Controls**
+## **Card Hand (Bottom Panel)**
 
-Same as Player A panel, but blue.
+### **Card Design:**
+- **Visual:** Icon + name + description + cost
+- **Interaction:**
+  - Click to select (card highlights)
+  - Click grid region to play
+  - Invalid regions shake/highlight red
+  - Valid regions glow green on hover
+- **Feedback:**
+  - Card disappears from hand when played
+  - Resources update immediately
+  - Grid shows effect preview (transparent overlay)
+- **Undo:** Button to undo last played card (before READY)
+
+### **Card Types Available:**
+
+**Offensive (Red border):**
+- ⚔️ Infiltrate, 💥 Disruption, 🗡️ Assault, 💣 Sabotage
+
+**Defensive (Blue border):**
+- 🛡️ Fortress, ⚡ Anchor, 🏰 Stronghold, 🔒 Monument
+
+**Utility (Purple border):**
+- 🔥 Heat Wave, ❄️ Freeze, 🌀 Chaos, 📊 Analysis
+
+**Special (Gold border):**
+- 🎯 Claim (Final Push phase only)
+- 🔄 Momentum (resource bonus)
+- ⚙️ Reconfigure (move biases around)
 
 ---
 
-## **Bottom Panel — System Feedback (Optional but Cool)**
+## **Player Panels (Left & Right)**
 
-```
-System Energy Over Sampling:
-[ tiny plot       ]
+### **Information Displayed:**
+- Player name & color
+- Current score (cells controlled)
+- Round wins counter
+- "YOUR TURN" indicator (pulsing when active)
+- Available resources:
+  - 🔗 Edge tokens: X/Y
+  - ⚡ Bias tokens: X/Y
+  - ⭐ Special tokens: X/Y
+- **PREVIEW button:** Run quick sampling preview
+- **READY button:** Confirm actions and proceed
 
-Spin Proportions:
-(A red) ████████▌ 68%
-(B blue) ███▌     32%
+### **Visual Enhancements:**
+- Player avatar/character sprite
+- Animated glow when active player
+- Resource tokens shown as draggable chips (alternative interaction)
+- Win streak indicator (flames if winning 2+ in a row)
 
-Message Log:
-• Player A strengthened edge (1,2)–(1,3)
-• Player B biased tile (4,4) toward -1
-• System sampled 50 states
-```
+---
 
-This **instantly communicates** that THRML is doing real probabilistic inference.
+## **Bottom Status Bar**
+
+### **System Metrics (Always Visible):**
+- **Energy graph:** Line chart showing E(x) over recent samples
+- **Magnetization:** Average spin (-1 to +1), bar chart
+- **Territory distribution:** A vs B percentage bars
+- **Phase indicator:** "Planning / Sampling / Scoring"
+
+### **Message Log:**
+- Recent actions from both players
+- System events ("Sampling complete", "Player A won round")
+- Combo notifications ("COMBO: Fortress + Anchor = Stronghold!")
+- Color-coded by player/system
+
+---
+
+## **Interaction Improvements Over Original**
+
+| Original | Redesigned |
+|----------|------------|
+| Click cell → browser confirm dialog | Click card → click region (smooth) |
+| No preview of effects | Preview button shows probabilities |
+| Instant sampling (no tension) | 10-15 sec animated sampling |
+| Can't undo mistakes | Undo button before READY |
+| No visual coupling strength | Edge thickness shows strength |
+| No entrenchment visible | Star badges show held rounds |
+| No combo feedback | Special effects for combos |
+| Static grid | Animated, glowing, responsive |
+
+---
+
+## **Responsive Design Notes**
+
+- **Desktop (1200px+):** Full 3-column layout
+- **Tablet (768-1199px):** Stack panels vertically, grid stays centered
+- **Mobile (< 768px):** Single column, card hand scrolls horizontally
+- **Grid scales:** 55px cells on desktop → 40px on mobile
+
+---
+
+## **Accessibility Features**
+
+- **Color blind mode:** Pattern overlays (stripes/dots) in addition to colors
+- **Screen reader support:** All cells and cards have aria-labels
+- **Keyboard navigation:** Tab through cards, arrow keys for grid
+- **High contrast mode:** Toggle for increased visibility
+
+---
+
+## **Visual Polish**
+
+- **Animations:** Smooth CSS transitions (0.3s ease)
+- **Particle effects:** Confetti on round wins, sparks on sampling
+- **Sound effects (optional):** Card play, sampling whoosh, victory fanfare
+- **Background:** Subtle animated energy field pattern
+- **Typography:** Bold headers, readable body text (16px minimum)

@@ -17,9 +17,10 @@ from thrml.models import IsingEBM, IsingSamplingProgram, hinton_init
 class GameConfig:
     grid_size: int = 5
     base_coupling: float = 0.5
-    base_beta: float = 1.0
+    base_beta: float = 3.0  # REDESIGN: Increased from 1.0 for more deterministic outcomes
     bias_step: float = 0.5       # how much each bias click changes h_i
     coupling_step: float = 0.25  # how much each edge click changes J_ij
+    bias_decay_rate: float = 0.5  # REDESIGN: Biases decay by this factor each round
 
 
 @dataclass
@@ -358,9 +359,10 @@ def both_players_ready(game: GameState) -> bool:
 
 
 def reset_round(game: GameState):
-    """Reset for a new round: reset biases and budgets, but keep game progress."""
-    # Reset biases to zero
-    game.biases = jnp.zeros_like(game.biases)
+    """Reset for a new round: decay biases and reset budgets, but keep game progress."""
+    # REDESIGN: Decay biases instead of resetting to zero
+    # This creates strategic continuity - your previous work still matters!
+    game.biases = game.biases * game.config.bias_decay_rate
 
     # Reset budgets
     game.player_a_budget = PlayerBudget()
@@ -417,3 +419,94 @@ def check_game_winner(game: GameState) -> Optional[str]:
         else:
             return 'tie'
     return None
+
+
+def get_probability_preview(game: GameState, rng_key: jax.Array, n_quick_samples: int = 10):
+    """
+    REDESIGN: Run a quick sampling preview to show players predicted outcomes.
+
+    This helps players:
+    - Learn cause-effect relationships
+    - Make informed strategic decisions
+    - Build intuition for the physics
+    - Reduce frustration from unexpected outcomes
+
+    Returns:
+        probabilities: jnp.ndarray, shape (N,), values 0-1 (probability of being +1/Player A)
+        predicted_counts: dict with 'A' and 'B' territory predictions
+    """
+    grid_size = game.config.grid_size
+    nodes = game.nodes
+    edges = game.edges
+
+    # Build model with current state
+    model = IsingEBM(
+        nodes=nodes,
+        edges=edges,
+        biases=game.biases,
+        weights=game.couplings,
+        beta=game.beta,
+    )
+
+    # Build blocks
+    free_blocks, all_nodes_block = _build_checkerboard_blocks(nodes, grid_size)
+
+    # Build sampling program
+    program = IsingSamplingProgram(
+        ebm=model,
+        free_blocks=free_blocks,
+        clamped_blocks=[],
+    )
+
+    # Initialize state
+    key_init, key_samp = jax.random.split(rng_key, 2)
+    init_state = hinton_init(key_init, model, free_blocks, ())
+
+    # Quick schedule with minimal warmup
+    schedule = SamplingSchedule(
+        n_warmup=20,  # Reduced warmup for speed
+        n_samples=n_quick_samples,
+        steps_per_sample=1,  # Minimal gap for speed
+    )
+
+    # Run quick sampling
+    samples = sample_states(
+        key_samp,
+        program,
+        schedule,
+        init_state,
+        [],
+        [all_nodes_block],
+    )
+
+    # Process samples
+    if isinstance(samples, (list, tuple)):
+        samples_array = samples[0]
+    else:
+        samples_array = samples
+
+    if samples_array.ndim == 3:
+        samples_array = samples_array[0]
+
+    # Convert to spins
+    spin_samples = jnp.where(samples_array, 1.0, -1.0)
+
+    # Calculate per-cell probabilities (mean spin value, normalized to 0-1)
+    mean_spins = jnp.mean(spin_samples, axis=0)  # -1 to +1
+    probabilities = (mean_spins + 1.0) / 2.0  # 0 to 1 (P of being +1/Player A)
+
+    # Calculate predicted territory counts
+    predicted_a = jnp.sum(mean_spins > 0)
+    predicted_b = jnp.sum(mean_spins < 0)
+
+    # Calculate standard deviation for confidence intervals
+    std_spins = jnp.std(spin_samples, axis=0)
+
+    return {
+        'probabilities': probabilities,  # Per-cell probability of being Player A
+        'mean_spins': mean_spins,  # Average spin value per cell
+        'std_spins': std_spins,  # Standard deviation per cell
+        'predicted_a_count': float(predicted_a),
+        'predicted_b_count': float(predicted_b),
+        'confidence': float(jnp.mean(jnp.abs(mean_spins))),  # Overall confidence (0-1)
+    }

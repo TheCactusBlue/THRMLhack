@@ -32,7 +32,7 @@ export function useGameAPI() {
         body: JSON.stringify({
           grid_size: 5,
           base_coupling: 0.5,
-          base_beta: 1.0,
+          base_beta: 3.0,  // REDESIGN: Use new higher beta for more deterministic outcomes
           bias_step: 0.5,
           coupling_step: 0.25,
         }),
@@ -158,6 +158,23 @@ export function useGameAPI() {
     }
   }, [fetchGameState])
 
+  const previewSampling = useCallback(async (n_quick_samples: number = 10) => {
+    setLoading(true)
+    try {
+      const response = await fetch(`${API_URL}/game/preview?n_quick_samples=${n_quick_samples}`, {
+        method: 'POST',
+      })
+      const data = await response.json()
+      showMessage('Preview generated!')
+      return data
+    } catch (error) {
+      showMessage('Error generating preview: ' + error)
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   return {
     gameState,
     loading,
@@ -170,5 +187,6 @@ export function useGameAPI() {
     resetGame,
     toggleReady,
     nextRound,
+    previewSampling,
   }
 }

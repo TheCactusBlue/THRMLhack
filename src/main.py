@@ -27,7 +27,7 @@ rng_key = jax.random.key(randint(1, 9999999999))
 class CreateGameRequest(BaseModel):
     grid_size: int = 5
     base_coupling: float = 0.5
-    base_beta: float = 1.0
+    base_beta: float = 3.0  # REDESIGN: Default to new higher beta
     bias_step: float = 0.5
     coupling_step: float = 0.25
 
@@ -344,6 +344,48 @@ def next_round():
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/game/preview")
+def preview_sampling(n_quick_samples: int = 10):
+    """
+    REDESIGN: Preview endpoint - run quick sampling to show predicted outcomes.
+
+    This helps players make informed decisions by showing them:
+    - Probability heatmap of cell states
+    - Predicted territory counts
+    - Confidence levels
+
+    Returns preview data without modifying game state.
+    """
+    global rng_key
+
+    if current_game is None:
+        raise HTTPException(status_code=404, detail="No active game. Create a game first.")
+
+    try:
+        rng_key, subkey = jax.random.split(rng_key)
+
+        preview_data = game.get_probability_preview(current_game, subkey, n_quick_samples)
+
+        # Reshape probabilities to grid
+        grid_size = current_game.config.grid_size
+        probabilities_grid = preview_data['probabilities'].reshape((grid_size, grid_size))
+        mean_spins_grid = preview_data['mean_spins'].reshape((grid_size, grid_size))
+        std_spins_grid = preview_data['std_spins'].reshape((grid_size, grid_size))
+
+        return {
+            "message": "Preview completed",
+            "probabilities": probabilities_grid.tolist(),  # 0-1 probability of being Player A
+            "mean_spins": mean_spins_grid.tolist(),  # -1 to +1 average spin
+            "std_spins": std_spins_grid.tolist(),  # Standard deviation
+            "predicted_a_count": preview_data['predicted_a_count'],
+            "predicted_b_count": preview_data['predicted_b_count'],
+            "confidence": preview_data['confidence'],  # Overall confidence 0-1
+            "n_samples": n_quick_samples,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 def main():
