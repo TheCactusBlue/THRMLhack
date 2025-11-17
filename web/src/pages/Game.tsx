@@ -10,7 +10,6 @@ import { CellTooltip } from "../components/CellTooltip";
 import { GameLegend } from "../components/GameLegend";
 import { CardHand } from "../components/CardHand";
 import ClassSelector from "../components/ClassSelector";
-import { ClassInfo } from "../components/ClassInfo";
 
 export function Game() {
   const {
@@ -18,8 +17,6 @@ export function Game() {
     loading,
     message,
     createGame,
-    updateBias,
-    updateCoupling,
     runSampling,
     resetGame,
     toggleReady,
@@ -44,12 +41,11 @@ export function Game() {
 
   // PHASE 2: Action queue for undo functionality
   const [actionQueue, setActionQueue] = useState<Action[]>([]);
-  const [showEnergyHeatmap, setShowEnergyHeatmap] = useState(false);
-  const [showCouplings, setShowCouplings] = useState(true); // Always show by default
+  const [showCouplings] = useState(true); // Always show by default
 
   // PHASE 3: Tooltip state
-  const [hoveredCell, setHoveredCell] = useState<[number, number] | null>(null);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [hoveredCell] = useState<[number, number] | null>(null);
+  const [tooltipPosition] = useState({ x: 0, y: 0 });
 
   // CARD SYSTEM: Selected card state
   const [selectedCard, setSelectedCard] = useState<CardType | null>(null);
@@ -60,23 +56,23 @@ export function Game() {
   // Shift key handling for temporary mode toggle
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Shift' && !shiftPressed) {
+      if (e.key === "Shift" && !shiftPressed) {
         setShiftPressed(true);
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'Shift') {
+      if (e.key === "Shift") {
         setShiftPressed(false);
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
     };
   }, [shiftPressed]);
 
