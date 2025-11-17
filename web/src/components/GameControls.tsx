@@ -24,7 +24,7 @@ export function GameControls({
     <div className="flex justify-between items-center px-4 py-2 bg-neutral-900 rounded-lg mb-2 border border-neutral-800 max-lg:flex-wrap max-lg:gap-2">
       <div className="flex items-center gap-4">
         <h1 className="text-2xl m-0 bg-gradient-to-br from-blue-500 to-red-500 bg-clip-text text-transparent max-sm:text-xl">
-          Energy Battle
+          Thermodynamic Tactics
         </h1>
         <div className="text-sm font-bold py-1 px-3 bg-neutral-800 rounded-md text-emerald-500 border border-neutral-800">
           Round {gameState.current_round}/{gameState.max_rounds}

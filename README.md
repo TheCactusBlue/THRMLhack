@@ -2,9 +2,11 @@
 
 A turn-based Ising model energy battle game built for the THRML hackathon.
 
+![screenshot](/notes/screenshot1.png)
+
 ## Overview
 
-THRMLHack is an interactive game where players manipulate an Ising model by adjusting biases and couplings, then run THRML sampling to see the resulting spin configuration. The game features:
+Thermodynamic Tactics is an interactive game where players manipulate an Ising model by adjusting biases and couplings, then run THRML sampling to see the resulting spin configuration. The game features:
 
 - 5x5 grid of spins (configurable)
 - Bias adjustment to push spins toward +1 (blue) or -1 (red)

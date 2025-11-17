@@ -6,7 +6,7 @@ from typing import Optional, Tuple, List
 import jax
 import jax.numpy as jnp
 from src import game
-from src.game import CardType
+from src.cards import CardType, Card
 
 app = FastAPI(title="THRMLHack Energy Battle Game")
 
@@ -419,7 +419,7 @@ def get_all_cards():
     """
     cards_info = []
     for card_type in CardType:
-        card = game.Card.get_card_definition(card_type)
+        card = Card.get_card_definition(card_type)
         cards_info.append({
             "type": card.card_type.value,
             "name": card.name,
