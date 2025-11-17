@@ -50,7 +50,7 @@ export function ClassInfo({
         <div className="mt-2 p-2 bg-neutral-800 rounded text-xs space-y-2">
           <div className="flex items-center gap-2">
             <img
-              src="/characters/ch1.png"
+              src={`/characters/${classDefinition.type}.png`}
               alt={classDefinition.name}
               className="w-12 h-12 rounded object-cover"
             />

@@ -124,7 +124,13 @@ export function PlayerPanel({
           {isReady ? "✓" : "Ready"}
         </button>
       </div>
-      <img src="/characters/ch1.png" />
+      {budget?.player_class && (
+        <img
+          src={`/characters/${budget.player_class}.png`}
+          alt={classInfo?.name || 'Character'}
+          className="w-full rounded object-cover"
+        />
+      )}
     </div>
   );
 }
