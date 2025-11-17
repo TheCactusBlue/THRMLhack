@@ -76,11 +76,11 @@ export function CardHand({
   }
 
   return (
-    <div className="space-y-2">
-      <h3 className="text-sm font-semibold text-gray-300">
-        Your Hand (Player {player})
+    <div className="flex flex-col gap-2">
+      <h3 className="text-sm font-semibold text-gray-300 text-center">
+        Cards (Player {player})
       </h3>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex gap-2 items-center">
         {availableCards.map((cardType) => {
           const card = cardDefinitions[cardType]
           if (!card) return null
@@ -95,7 +95,7 @@ export function CardHand({
               disabled={!isPlayable}
               className={`
                 relative flex flex-col items-center justify-between
-                w-24 h-32 p-2 rounded-lg border-2 transition-all
+                w-24 h-32 p-2 rounded-lg border-2 transition-all flex-shrink-0
                 ${isSelected
                   ? 'border-yellow-400 ring-2 ring-yellow-400 scale-105'
                   : 'border-transparent hover:border-gray-400'
@@ -140,14 +140,14 @@ export function CardHand({
             </button>
           )
         })}
-      </div>
 
-      {/* Instructions */}
-      {selectedCard && (
-        <div className="text-xs text-yellow-400 bg-yellow-900/30 p-2 rounded">
-          Click on the grid to play {cardDefinitions[selectedCard]?.name}
-        </div>
-      )}
+        {/* Instructions - shown inline when card is selected */}
+        {selectedCard && (
+          <div className="text-xs text-yellow-400 bg-yellow-900/30 p-2 rounded whitespace-nowrap">
+            Click grid to play {cardDefinitions[selectedCard]?.name}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

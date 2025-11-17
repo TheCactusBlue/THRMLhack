@@ -323,43 +323,6 @@ export function Game() {
             onSwitchPlayer={setCurrentPlayer}
             onToggleReady={handleToggleReady}
           />
-
-          {/* CARD SYSTEM: Player A's hand */}
-          {currentPlayer === "A" && gameState.player_a_budget && (
-            <div className="mt-4 pt-4 border-t border-neutral-700">
-              <CardHand
-                hand={gameState.player_a_budget.hand}
-                playedCards={gameState.player_a_budget.played_cards}
-                player="A"
-                biasTokensAvailable={
-                  gameState.player_a_budget.bias_tokens -
-                  gameState.player_a_budget.bias_tokens_used
-                }
-                edgeTokensAvailable={
-                  gameState.player_a_budget.edge_tokens -
-                  gameState.player_a_budget.edge_tokens_used
-                }
-                onCardSelect={setSelectedCard}
-                selectedCard={selectedCard}
-                getAllCards={getAllCards}
-              />
-            </div>
-          )}
-
-          {/* SKILL SYSTEM: Player A's skills */}
-          {currentPlayer === "A" && gameState.player_a_budget && (
-            <div className="mt-4 pt-4 border-t border-neutral-700">
-              <SkillBar
-                playerClass={gameState.player_a_budget.player_class}
-                player="A"
-                currentRound={gameState.current_round}
-                onSkillSelect={setSelectedSkill}
-                selectedSkill={selectedSkill}
-                getClassSkills={getClassSkills}
-                getCooldowns={getCooldowns}
-              />
-            </div>
-          )}
         </div>
 
         <div className="flex flex-col items-center overflow-y-auto">
@@ -448,10 +411,47 @@ export function Game() {
             onSwitchPlayer={setCurrentPlayer}
             onToggleReady={handleToggleReady}
           />
+        </div>
+      </div>
+
+      {/* Bottom card and skill bar for current player */}
+      <div className="bg-neutral-900 rounded-lg p-3 border-[3px] border-neutral-800 mt-2 max-h-[220px] overflow-x-auto overflow-y-hidden">
+        <div className="flex gap-6 items-start justify-center min-h-0">
+          {/* CARD SYSTEM: Current player's hand */}
+          {currentPlayer === "A" && gameState.player_a_budget && (
+            <>
+              <CardHand
+                hand={gameState.player_a_budget.hand}
+                playedCards={gameState.player_a_budget.played_cards}
+                player="A"
+                biasTokensAvailable={
+                  gameState.player_a_budget.bias_tokens -
+                  gameState.player_a_budget.bias_tokens_used
+                }
+                edgeTokensAvailable={
+                  gameState.player_a_budget.edge_tokens -
+                  gameState.player_a_budget.edge_tokens_used
+                }
+                onCardSelect={setSelectedCard}
+                selectedCard={selectedCard}
+                getAllCards={getAllCards}
+              />
+              <div className="w-px bg-neutral-700 self-stretch"></div>
+              <SkillBar
+                playerClass={gameState.player_a_budget.player_class}
+                player="A"
+                currentRound={gameState.current_round}
+                onSkillSelect={setSelectedSkill}
+                selectedSkill={selectedSkill}
+                getClassSkills={getClassSkills}
+                getCooldowns={getCooldowns}
+              />
+            </>
+          )}
 
           {/* CARD SYSTEM: Player B's hand */}
           {currentPlayer === "B" && gameState.player_b_budget && (
-            <div className="mt-4 pt-4 border-t border-neutral-700">
+            <>
               <CardHand
                 hand={gameState.player_b_budget.hand}
                 playedCards={gameState.player_b_budget.played_cards}
@@ -468,12 +468,7 @@ export function Game() {
                 selectedCard={selectedCard}
                 getAllCards={getAllCards}
               />
-            </div>
-          )}
-
-          {/* SKILL SYSTEM: Player B's skills */}
-          {currentPlayer === "B" && gameState.player_b_budget && (
-            <div className="mt-4 pt-4 border-t border-neutral-700">
+              <div className="w-px bg-neutral-700 self-stretch"></div>
               <SkillBar
                 playerClass={gameState.player_b_budget.player_class}
                 player="B"
@@ -483,7 +478,7 @@ export function Game() {
                 getClassSkills={getClassSkills}
                 getCooldowns={getCooldowns}
               />
-            </div>
+            </>
           )}
         </div>
       </div>

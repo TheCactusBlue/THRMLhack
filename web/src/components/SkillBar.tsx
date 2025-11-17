@@ -40,11 +40,11 @@ export function SkillBar({
   }
 
   return (
-    <div className="space-y-2">
-      <h3 className="text-sm font-semibold text-gray-300">
+    <div className="flex flex-col gap-2">
+      <h3 className="text-sm font-semibold text-gray-300 text-center">
         Skills (Player {player})
       </h3>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex gap-2 items-center">
         {skills.map((skill) => {
           const cooldownStatus = cooldowns[skill.name]
           const isAvailable = cooldownStatus?.available ?? true
@@ -58,7 +58,7 @@ export function SkillBar({
               disabled={!isAvailable}
               className={`
                 relative flex flex-col items-center justify-between
-                w-28 h-36 p-2 rounded-lg border-2 transition-all
+                w-28 h-36 p-2 rounded-lg border-2 transition-all flex-shrink-0
                 ${isSelected
                   ? 'border-yellow-400 ring-2 ring-yellow-400 scale-105'
                   : 'border-transparent hover:border-gray-400'
@@ -116,17 +116,17 @@ export function SkillBar({
             </button>
           )
         })}
-      </div>
 
-      {/* Instructions */}
-      {selectedSkill && (
-        <div className="text-xs text-yellow-400 bg-yellow-900/30 p-2 rounded">
-          {skills.find(s => s.name === selectedSkill)?.requires_target
-            ? `Click on the grid to use ${skills.find(s => s.name === selectedSkill)?.display_name}`
-            : `Click the skill again to activate ${skills.find(s => s.name === selectedSkill)?.display_name}`
-          }
-        </div>
-      )}
+        {/* Instructions - shown inline when skill is selected */}
+        {selectedSkill && (
+          <div className="text-xs text-yellow-400 bg-yellow-900/30 p-2 rounded whitespace-nowrap">
+            {skills.find(s => s.name === selectedSkill)?.requires_target
+              ? `Click grid to use ${skills.find(s => s.name === selectedSkill)?.display_name}`
+              : `Click skill again to activate ${skills.find(s => s.name === selectedSkill)?.display_name}`
+            }
+          </div>
+        )}
+      </div>
     </div>
   )
 }
