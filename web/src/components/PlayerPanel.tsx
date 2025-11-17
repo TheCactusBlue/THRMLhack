@@ -31,23 +31,23 @@ export function PlayerPanel({
     if (!className) return null;
 
     const classIcons: Record<string, string> = {
-      'infiltrator': '⚔️',
-      'fortress': '🛡️',
-      'manipulator': '🎯',
-      'wildcard': '🎲',
-      'hybrid': '⚖️',
+      infiltrator: "⚔️",
+      fortress: "🛡️",
+      manipulator: "🎯",
+      wildcard: "🎲",
+      hybrid: "⚖️",
     };
 
     const classNames: Record<string, string> = {
-      'infiltrator': 'Infiltrator',
-      'fortress': 'Fortress',
-      'manipulator': 'Manipulator',
-      'wildcard': 'Wildcard',
-      'hybrid': 'Hybrid',
+      infiltrator: "Infiltrator",
+      fortress: "Fortress",
+      manipulator: "Manipulator",
+      wildcard: "Wildcard",
+      hybrid: "Hybrid",
     };
 
     return {
-      icon: classIcons[className] || '❓',
+      icon: classIcons[className] || "❓",
       name: classNames[className] || className,
     };
   };
@@ -127,7 +127,7 @@ export function PlayerPanel({
       {budget?.player_class && (
         <img
           src={`/characters/${budget.player_class}.png`}
-          alt={classInfo?.name || 'Character'}
+          alt={classInfo?.name || "Character"}
           className="w-full rounded object-cover"
         />
       )}

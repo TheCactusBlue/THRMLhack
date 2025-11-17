@@ -1,29 +1,39 @@
-import { useState, useEffect } from 'react'
-import type { PlayerClassDefinition } from '../types'
+import { useState, useEffect } from "react";
+import type { PlayerClassDefinition } from "../types";
 
 interface ClassSelectorProps {
-  onSelectClasses: (playerAClass: string | undefined, playerBClass: string | undefined) => void
-  getAllClasses: () => Promise<PlayerClassDefinition[]>
+  onSelectClasses: (
+    playerAClass: string | undefined,
+    playerBClass: string | undefined
+  ) => void;
+  getAllClasses: () => Promise<PlayerClassDefinition[]>;
 }
 
-export default function ClassSelector({ onSelectClasses, getAllClasses }: ClassSelectorProps) {
-  const [classes, setClasses] = useState<PlayerClassDefinition[]>([])
-  const [playerAClass, setPlayerAClass] = useState<string | undefined>(undefined)
-  const [playerBClass, setPlayerBClass] = useState<string | undefined>(undefined)
-  const [showSelector, setShowSelector] = useState(true)
+export default function ClassSelector({
+  onSelectClasses,
+  getAllClasses,
+}: ClassSelectorProps) {
+  const [classes, setClasses] = useState<PlayerClassDefinition[]>([]);
+  const [playerAClass, setPlayerAClass] = useState<string | undefined>(
+    undefined
+  );
+  const [playerBClass, setPlayerBClass] = useState<string | undefined>(
+    undefined
+  );
+  const [showSelector, setShowSelector] = useState(true);
 
   useEffect(() => {
     // Fetch available classes on mount
-    getAllClasses().then(setClasses)
-  }, [getAllClasses])
+    getAllClasses().then(setClasses);
+  }, [getAllClasses]);
 
   const handleStartGame = () => {
-    onSelectClasses(playerAClass, playerBClass)
-    setShowSelector(false)
-  }
+    onSelectClasses(playerAClass, playerBClass);
+    setShowSelector(false);
+  };
 
   if (!showSelector) {
-    return null
+    return null;
   }
 
   return (
@@ -45,8 +55,8 @@ export default function ClassSelector({ onSelectClasses, getAllClasses }: ClassS
               <label
                 className={`block p-4 rounded border-2 cursor-pointer transition-all ${
                   playerAClass === undefined
-                    ? 'border-blue-400 bg-blue-900/30'
-                    : 'border-gray-600 hover:border-gray-500'
+                    ? "border-blue-400 bg-blue-900/30"
+                    : "border-gray-600 hover:border-gray-500"
                 }`}
               >
                 <input
@@ -68,8 +78,8 @@ export default function ClassSelector({ onSelectClasses, getAllClasses }: ClassS
                   key={classInfo.type}
                   className={`block p-4 rounded border-2 cursor-pointer transition-all ${
                     playerAClass === classInfo.type
-                      ? 'border-blue-400 bg-blue-900/30'
-                      : 'border-gray-600 hover:border-gray-500'
+                      ? "border-blue-400 bg-blue-900/30"
+                      : "border-gray-600 hover:border-gray-500"
                   }`}
                 >
                   <div className="flex gap-3">
@@ -120,8 +130,8 @@ export default function ClassSelector({ onSelectClasses, getAllClasses }: ClassS
               <label
                 className={`block p-4 rounded border-2 cursor-pointer transition-all ${
                   playerBClass === undefined
-                    ? 'border-red-400 bg-red-900/30'
-                    : 'border-gray-600 hover:border-gray-500'
+                    ? "border-red-400 bg-red-900/30"
+                    : "border-gray-600 hover:border-gray-500"
                 }`}
               >
                 <input
@@ -143,8 +153,8 @@ export default function ClassSelector({ onSelectClasses, getAllClasses }: ClassS
                   key={classInfo.type}
                   className={`block p-4 rounded border-2 cursor-pointer transition-all ${
                     playerBClass === classInfo.type
-                      ? 'border-red-400 bg-red-900/30'
-                      : 'border-gray-600 hover:border-gray-500'
+                      ? "border-red-400 bg-red-900/30"
+                      : "border-gray-600 hover:border-gray-500"
                   }`}
                 >
                   <div className="flex gap-3">
@@ -195,5 +205,5 @@ export default function ClassSelector({ onSelectClasses, getAllClasses }: ClassS
         </div>
       </div>
     </div>
-  )
+  );
 }
