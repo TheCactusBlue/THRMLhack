@@ -2,10 +2,11 @@ from random import randint
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 import jax
 import jax.numpy as jnp
 from src import game
+from src.game import CardType
 
 app = FastAPI(title="THRMLHack Energy Battle Game")
 
@@ -57,6 +58,8 @@ class PlayerBudgetResponse(BaseModel):
     bias_tokens: int
     edge_tokens_used: int
     bias_tokens_used: int
+    hand: List[str] = []  # List of card types in hand
+    played_cards: List[str] = []  # List of card types played this round
 
 
 class GameStateResponse(BaseModel):
@@ -129,12 +132,16 @@ def get_game_state():
             bias_tokens=current_game.player_a_budget.bias_tokens,
             edge_tokens_used=current_game.player_a_budget.edge_tokens_used,
             bias_tokens_used=current_game.player_a_budget.bias_tokens_used,
+            hand=[str(card.value) for card in current_game.player_a_budget.hand],
+            played_cards=[str(card.value) for card in current_game.player_a_budget.played_cards],
         ),
         player_b_budget=PlayerBudgetResponse(
             edge_tokens=current_game.player_b_budget.edge_tokens,
             bias_tokens=current_game.player_b_budget.bias_tokens,
             edge_tokens_used=current_game.player_b_budget.edge_tokens_used,
             bias_tokens_used=current_game.player_b_budget.bias_tokens_used,
+            hand=[str(card.value) for card in current_game.player_b_budget.hand],
+            played_cards=[str(card.value) for card in current_game.player_b_budget.played_cards],
         ),
         player_a_ready=current_game.player_a_ready,
         player_b_ready=current_game.player_b_ready,
@@ -393,6 +400,72 @@ def next_round():
             "current_round": current_game.current_round,
             "player_a_wins": current_game.player_a_wins,
             "player_b_wins": current_game.player_b_wins,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+class PlayCardRequest(BaseModel):
+    card_type: str  # CardType enum value
+    target_row: int
+    target_col: int
+    player: str = 'A'  # 'A' or 'B'
+
+
+@app.get("/cards/all")
+def get_all_cards():
+    """
+    Get information about all available card types.
+    """
+    cards_info = []
+    for card_type in CardType:
+        card = game.Card.get_card_definition(card_type)
+        cards_info.append({
+            "type": card.card_type.value,
+            "name": card.name,
+            "description": card.description,
+            "bias_cost": card.bias_cost,
+            "edge_cost": card.edge_cost,
+        })
+    return {"cards": cards_info}
+
+
+@app.post("/game/play-card")
+def play_card_endpoint(request: PlayCardRequest):
+    """
+    Play a card from the player's hand at a target location.
+
+    The card will apply its effect to the game board based on the card type.
+    """
+    if current_game is None:
+        raise HTTPException(status_code=404, detail="No active game. Create a game first.")
+
+    if request.player not in ['A', 'B']:
+        raise HTTPException(status_code=400, detail="Player must be 'A' or 'B'")
+
+    try:
+        # Convert string to CardType enum
+        card_type = CardType(request.card_type)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid card type: {request.card_type}")
+
+    try:
+        # Play the card
+        game.play_card(current_game, request.player, card_type, request.target_row, request.target_col)
+
+        budget = current_game.player_a_budget if request.player == 'A' else current_game.player_b_budget
+
+        return {
+            "message": f"Card {card_type.value} played successfully",
+            "player": request.player,
+            "card_type": card_type.value,
+            "target": (request.target_row, request.target_col),
+            "remaining_hand": [str(c.value) for c in budget.hand if c not in budget.played_cards],
+            "played_cards": [str(c.value) for c in budget.played_cards],
+            "tokens_remaining": {
+                "bias": budget.bias_tokens - budget.bias_tokens_used,
+                "edge": budget.edge_tokens - budget.edge_tokens_used,
+            },
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

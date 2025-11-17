@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type { PlayerType, Action } from "./types";
+import type { PlayerType, Action, CardType } from "./types";
 import { useGameAPI } from "./hooks/useGameAPI";
 import { PlayerPanel } from "./components/PlayerPanel";
 import { GameGrid } from "./components/GameGrid";
@@ -8,6 +8,7 @@ import { GameStats } from "./components/GameStats";
 import { ActionQueue } from "./components/ActionQueue";
 import { CellTooltip } from "./components/CellTooltip";
 import { GameLegend } from "./components/GameLegend";
+import { CardHand } from "./components/CardHand";
 
 function App() {
   const {
@@ -23,6 +24,8 @@ function App() {
     nextRound,
     previewSampling,
     batchActions,
+    getAllCards,
+    playCard,
   } = useGameAPI();
 
   const [selectedCell, setSelectedCell] = useState<[number, number] | null>(
@@ -43,6 +46,9 @@ function App() {
   // PHASE 3: Tooltip state
   const [hoveredCell, setHoveredCell] = useState<[number, number] | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+
+  // CARD SYSTEM: Selected card state
+  const [selectedCard, setSelectedCard] = useState<CardType | null>(null);
 
   useEffect(() => {
     createGame();
@@ -85,7 +91,14 @@ function App() {
     setActionQueue((prev) => [...prev, action]);
   };
 
-  const handleCellClick = (row: number, col: number) => {
+  const handleCellClick = async (row: number, col: number) => {
+    // CARD SYSTEM: If a card is selected, play it at this location
+    if (selectedCard) {
+      await playCard(selectedCard, row, col, currentPlayer);
+      setSelectedCard(null);
+      return;
+    }
+
     // REDESIGN: Remove confirm dialogs - use shift key for direction
     if (edgeMode) {
       // Edge coupling mode
@@ -243,6 +256,22 @@ function App() {
             onSwitchPlayer={setCurrentPlayer}
             onToggleReady={handleToggleReady}
           />
+
+          {/* CARD SYSTEM: Player A's hand */}
+          {currentPlayer === "A" && gameState.player_a_budget && (
+            <div className="mt-4 pt-4 border-t border-neutral-700">
+              <CardHand
+                hand={gameState.player_a_budget.hand}
+                playedCards={gameState.player_a_budget.played_cards}
+                player="A"
+                biasTokensAvailable={gameState.player_a_budget.bias_tokens - gameState.player_a_budget.bias_tokens_used}
+                edgeTokensAvailable={gameState.player_a_budget.edge_tokens - gameState.player_a_budget.edge_tokens_used}
+                onCardSelect={setSelectedCard}
+                selectedCard={selectedCard}
+                getAllCards={getAllCards}
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col items-center overflow-y-auto">
@@ -330,6 +359,22 @@ function App() {
             onSwitchPlayer={setCurrentPlayer}
             onToggleReady={handleToggleReady}
           />
+
+          {/* CARD SYSTEM: Player B's hand */}
+          {currentPlayer === "B" && gameState.player_b_budget && (
+            <div className="mt-4 pt-4 border-t border-neutral-700">
+              <CardHand
+                hand={gameState.player_b_budget.hand}
+                playedCards={gameState.player_b_budget.played_cards}
+                player="B"
+                biasTokensAvailable={gameState.player_b_budget.bias_tokens - gameState.player_b_budget.bias_tokens_used}
+                edgeTokensAvailable={gameState.player_b_budget.edge_tokens - gameState.player_b_budget.edge_tokens_used}
+                onCardSelect={setSelectedCard}
+                selectedCard={selectedCard}
+                getAllCards={getAllCards}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

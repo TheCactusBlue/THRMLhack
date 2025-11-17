@@ -1,8 +1,27 @@
+// Card system types
+export type CardType =
+  | 'infiltrate'
+  | 'disruption'
+  | 'fortress'
+  | 'anchor'
+  | 'heat_wave'
+  | 'freeze'
+
+export interface Card {
+  type: CardType
+  name: string
+  description: string
+  bias_cost: number
+  edge_cost: number
+}
+
 export interface PlayerBudget {
   edge_tokens: number
   bias_tokens: number
   edge_tokens_used: number
   bias_tokens_used: number
+  hand: string[]  // Card types in hand
+  played_cards: string[]  // Card types played this round
 }
 
 export interface GameState {

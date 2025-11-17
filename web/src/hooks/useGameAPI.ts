@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import type { GameState, PlayerType } from '../types'
+import type { GameState, PlayerType, Card, CardType } from '../types'
 
 const API_URL = 'http://localhost:8000'
 
@@ -193,6 +193,55 @@ export function useGameAPI() {
     }
   }, [])
 
+  // Card system API calls
+  const getAllCards = useCallback(async (): Promise<Card[]> => {
+    try {
+      const response = await fetch(`${API_URL}/cards/all`)
+      const data = await response.json()
+      return data.cards
+    } catch (error) {
+      showMessage('Error fetching cards: ' + error)
+      return []
+    }
+  }, [])
+
+  const playCard = useCallback(async (
+    cardType: CardType,
+    targetRow: number,
+    targetCol: number,
+    player: PlayerType
+  ) => {
+    setLoading(true)
+    try {
+      const response = await fetch(`${API_URL}/game/play-card`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          card_type: cardType,
+          target_row: targetRow,
+          target_col: targetCol,
+          player,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Failed to play card')
+      }
+
+      const data = await response.json()
+      await fetchGameState()
+      showMessage(`Player ${player} played ${cardType}!`)
+      return data
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      showMessage('Error: ' + errorMsg)
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchGameState])
+
   return {
     gameState,
     loading,
@@ -207,5 +256,8 @@ export function useGameAPI() {
     nextRound,
     previewSampling,
     batchActions,
+    // Card system
+    getAllCards,
+    playCard,
   }
 }
