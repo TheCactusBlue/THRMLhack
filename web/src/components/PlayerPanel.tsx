@@ -26,12 +26,45 @@ export function PlayerPanel({
   const isActive = currentPlayer === player;
   const color = player === "A" ? "#3b82f6" : "#ef4444";
 
+  // Get class info for display
+  const getClassDisplay = (className: string | undefined) => {
+    if (!className) return null;
+
+    const classIcons: Record<string, string> = {
+      'infiltrator': '⚔️',
+      'fortress': '🛡️',
+      'manipulator': '🎯',
+      'wildcard': '🎲',
+      'hybrid': '⚖️',
+    };
+
+    const classNames: Record<string, string> = {
+      'infiltrator': 'Infiltrator',
+      'fortress': 'Fortress',
+      'manipulator': 'Manipulator',
+      'wildcard': 'Wildcard',
+      'hybrid': 'Hybrid',
+    };
+
+    return {
+      icon: classIcons[className] || '❓',
+      name: classNames[className] || className,
+    };
+  };
+
+  const classInfo = getClassDisplay(budget?.player_class);
+
   return (
     <div className="flex flex-col gap-2">
       <div className="text-center">
         <h2 className="m-0 mb-1 text-lg font-semibold" style={{ color }}>
           Player {player}
         </h2>
+        {classInfo && (
+          <div className="text-xs text-gray-300 mb-1 font-medium">
+            {classInfo.icon} {classInfo.name}
+          </div>
+        )}
         {isActive && (
           <div
             className="text-[0.65rem] font-bold py-0.5 px-2 rounded text-white text-center tracking-wider animate-[pulse_1.5s_ease-in-out_infinite]"

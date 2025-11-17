@@ -22,6 +22,20 @@ export interface PlayerBudget {
   bias_tokens_used: number
   hand: string[]  // Card types in hand
   played_cards: string[]  // Card types played this round
+  player_class?: string  // Player's chosen class
+  cards_redrawn: number  // Track card redraws (for Hybrid class)
+}
+
+// Player class types
+export interface PlayerClassDefinition {
+  type: string
+  name: string
+  description: string
+  base_bias_tokens: number
+  base_edge_tokens: number
+  passive_ability: string
+  icon: string
+  color_scheme: string
 }
 
 export interface GameState {

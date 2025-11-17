@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import type { GameState, PlayerType, Card, CardType } from '../types'
+import type { GameState, PlayerType, Card, CardType, PlayerClassDefinition } from '../types'
 
 const API_URL = 'http://localhost:8000'
 
@@ -23,7 +23,7 @@ export function useGameAPI() {
     }
   }, [])
 
-  const createGame = useCallback(async () => {
+  const createGame = useCallback(async (playerAClass?: string, playerBClass?: string) => {
     setLoading(true)
     try {
       await fetch(`${API_URL}/game/create`, {
@@ -35,6 +35,8 @@ export function useGameAPI() {
           base_beta: 3.0,  // REDESIGN: Use new higher beta for more deterministic outcomes
           bias_step: 0.5,
           coupling_step: 0.25,
+          player_a_class: playerAClass,
+          player_b_class: playerBClass,
         }),
       })
       await fetchGameState()
@@ -205,6 +207,17 @@ export function useGameAPI() {
     }
   }, [])
 
+  const getAllClasses = useCallback(async (): Promise<PlayerClassDefinition[]> => {
+    try {
+      const response = await fetch(`${API_URL}/classes/all`)
+      const data = await response.json()
+      return data.classes
+    } catch (error) {
+      showMessage('Error fetching classes: ' + error)
+      return []
+    }
+  }, [])
+
   const playCard = useCallback(async (
     cardType: CardType,
     targetRow: number,
@@ -259,5 +272,7 @@ export function useGameAPI() {
     // Card system
     getAllCards,
     playCard,
+    // Class system
+    getAllClasses,
   }
 }

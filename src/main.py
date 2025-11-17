@@ -7,6 +7,7 @@ import jax
 import jax.numpy as jnp
 from src import game
 from src.cards import CardType, Card
+from src.player_classes import PlayerClass, get_all_classes, get_class_definition
 
 app = FastAPI(title="THRMLHack Energy Battle Game")
 
@@ -31,6 +32,8 @@ class CreateGameRequest(BaseModel):
     base_beta: float = 3.0  # REDESIGN: Default to new higher beta
     bias_step: float = 0.5
     coupling_step: float = 0.25
+    player_a_class: Optional[str] = None  # CLASS SYSTEM: Player A's chosen class
+    player_b_class: Optional[str] = None  # CLASS SYSTEM: Player B's chosen class
 
 
 class BiasUpdateRequest(BaseModel):
@@ -60,6 +63,8 @@ class PlayerBudgetResponse(BaseModel):
     bias_tokens_used: int
     hand: List[str] = []  # List of card types in hand
     played_cards: List[str] = []  # List of card types played this round
+    player_class: Optional[str] = None  # CLASS SYSTEM: Player's chosen class
+    cards_redrawn: int = 0  # CLASS SYSTEM: Track card redraws (for Hybrid class)
 
 
 class GameStateResponse(BaseModel):
@@ -106,13 +111,29 @@ def create_game(request: CreateGameRequest):
         coupling_step=request.coupling_step,
     )
 
-    current_game = game.create_game(config)
+    # CLASS SYSTEM: Parse player classes from request
+    player_a_class = None
+    player_b_class = None
+    if request.player_a_class:
+        try:
+            player_a_class = PlayerClass(request.player_a_class)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid player class: {request.player_a_class}")
+    if request.player_b_class:
+        try:
+            player_b_class = PlayerClass(request.player_b_class)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid player class: {request.player_b_class}")
+
+    current_game = game.create_game(config, player_a_class, player_b_class)
 
     return {
         "message": "Game created successfully",
         "grid_size": current_game.config.grid_size,
         "num_nodes": len(current_game.nodes),
         "num_edges": len(current_game.edges),
+        "player_a_class": player_a_class.value if player_a_class else None,
+        "player_b_class": player_b_class.value if player_b_class else None,
     }
 
 
@@ -134,6 +155,8 @@ def get_game_state():
             bias_tokens_used=current_game.player_a_budget.bias_tokens_used,
             hand=[str(card.value) for card in current_game.player_a_budget.hand],
             played_cards=[str(card.value) for card in current_game.player_a_budget.played_cards],
+            player_class=current_game.player_a_budget.player_class.value if current_game.player_a_budget.player_class else None,
+            cards_redrawn=current_game.player_a_budget.cards_redrawn,
         ),
         player_b_budget=PlayerBudgetResponse(
             edge_tokens=current_game.player_b_budget.edge_tokens,
@@ -142,6 +165,8 @@ def get_game_state():
             bias_tokens_used=current_game.player_b_budget.bias_tokens_used,
             hand=[str(card.value) for card in current_game.player_b_budget.hand],
             played_cards=[str(card.value) for card in current_game.player_b_budget.played_cards],
+            player_class=current_game.player_b_budget.player_class.value if current_game.player_b_budget.player_class else None,
+            cards_redrawn=current_game.player_b_budget.cards_redrawn,
         ),
         player_a_ready=current_game.player_a_ready,
         player_b_ready=current_game.player_b_ready,
@@ -428,6 +453,27 @@ def get_all_cards():
             "edge_cost": card.edge_cost,
         })
     return {"cards": cards_info}
+
+
+@app.get("/classes/all")
+def get_all_classes_endpoint():
+    """
+    Get information about all available player classes.
+    """
+    classes_list = get_all_classes()
+    classes_info = []
+    for class_def in classes_list:
+        classes_info.append({
+            "type": class_def.class_type.value,
+            "name": class_def.name,
+            "description": class_def.description,
+            "base_bias_tokens": class_def.base_bias_tokens,
+            "base_edge_tokens": class_def.base_edge_tokens,
+            "passive_ability": class_def.passive_ability,
+            "icon": class_def.icon,
+            "color_scheme": class_def.color_scheme,
+        })
+    return {"classes": classes_info}
 
 
 @app.post("/game/play-card")

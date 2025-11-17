@@ -11,6 +11,8 @@ from thrml.models import IsingEBM, IsingSamplingProgram, hinton_init
 
 # Import card system from separate module
 from .cards import CardType, Card, deal_cards_to_player, can_play_card, play_card
+# Import player class system
+from .player_classes import PlayerClass, deal_class_cards, get_starting_budget, apply_class_passive
 
 
 # -------------------------
@@ -35,6 +37,9 @@ class PlayerBudget:
     # Card system
     hand: List[CardType] = field(default_factory=list)  # Cards in player's hand
     played_cards: List[CardType] = field(default_factory=list)  # Cards played this round
+    # Class system
+    player_class: Optional[PlayerClass] = None  # Player's chosen class
+    cards_redrawn: int = 0  # Track card redraws (for Hybrid class)
 
 
 @dataclass
@@ -144,9 +149,18 @@ def _build_checkerboard_blocks(nodes: List[SpinNode], grid_size: int):
 # -------------------------
 # Public API
 # -------------------------
-def create_game(config: Optional[GameConfig] = None) -> GameState:
+def create_game(
+    config: Optional[GameConfig] = None,
+    player_a_class: Optional[PlayerClass] = None,
+    player_b_class: Optional[PlayerClass] = None
+) -> GameState:
     """
     Initialize a new game with a grid of SpinNodes and default couplings/biases.
+
+    Args:
+        config: Game configuration
+        player_a_class: Player A's chosen class (None for default/no class)
+        player_b_class: Player B's chosen class (None for default/no class)
     """
     if config is None:
         config = GameConfig()
@@ -161,6 +175,27 @@ def create_game(config: Optional[GameConfig] = None) -> GameState:
     couplings = jnp.ones((n_edges,), dtype=jnp.float32) * config.base_coupling
     beta = jnp.array(config.base_beta, dtype=jnp.float32)
 
+    # CLASS SYSTEM: Initialize player budgets with class-specific resources
+    if player_a_class:
+        a_bias, a_edge = get_starting_budget(player_a_class)
+        player_a_budget = PlayerBudget(
+            bias_tokens=a_bias,
+            edge_tokens=a_edge,
+            player_class=player_a_class
+        )
+    else:
+        player_a_budget = PlayerBudget()
+
+    if player_b_class:
+        b_bias, b_edge = get_starting_budget(player_b_class)
+        player_b_budget = PlayerBudget(
+            bias_tokens=b_bias,
+            edge_tokens=b_edge,
+            player_class=player_b_class
+        )
+    else:
+        player_b_budget = PlayerBudget()
+
     game = GameState(
         config=config,
         nodes=nodes,
@@ -169,11 +204,20 @@ def create_game(config: Optional[GameConfig] = None) -> GameState:
         biases=biases,
         couplings=couplings,
         beta=beta,
+        player_a_budget=player_a_budget,
+        player_b_budget=player_b_budget,
     )
 
-    # CARD SYSTEM: Deal initial cards to both players
-    deal_cards_to_player(game.player_a_budget, num_cards=5)
-    deal_cards_to_player(game.player_b_budget, num_cards=5)
+    # CARD SYSTEM: Deal initial cards to both players (class-weighted if class is chosen)
+    if player_a_class:
+        deal_class_cards(game.player_a_budget, player_a_class, num_cards=5)
+    else:
+        deal_cards_to_player(game.player_a_budget, num_cards=5)
+
+    if player_b_class:
+        deal_class_cards(game.player_b_budget, player_b_class, num_cards=5)
+    else:
+        deal_cards_to_player(game.player_b_budget, num_cards=5)
 
     return game
 
@@ -427,13 +471,24 @@ def reset_round(game: GameState):
     game.biases = game.biases * game.config.bias_decay_rate
 
     # PHASE 2: Dynamic token income based on territory control
+    # CLASS SYSTEM: Store previous classes before resetting budgets
+    prev_a_class = game.player_a_budget.player_class if game.player_a_budget else None
+    prev_b_class = game.player_b_budget.player_class if game.player_b_budget else None
+
     if game.last_final_spins is not None:
         player_a_cells = int(jnp.sum(game.last_final_spins == 1))
         player_b_cells = int(jnp.sum(game.last_final_spins == -1))
 
-        # Base tokens
-        base_edge = 2
-        base_bias = 2
+        # Base tokens (use class-specific if available)
+        if prev_a_class:
+            a_bias_base, a_edge_base = get_starting_budget(prev_a_class)
+        else:
+            a_bias_base, a_edge_base = 2, 2
+
+        if prev_b_class:
+            b_bias_base, b_edge_base = get_starting_budget(prev_b_class)
+        else:
+            b_bias_base, b_edge_base = 2, 2
 
         # Bonus: +1 token per 5 cells controlled
         a_territory_bonus = player_a_cells // 5
@@ -447,21 +502,43 @@ def reset_round(game: GameState):
 
         # Set new budgets
         game.player_a_budget = PlayerBudget(
-            edge_tokens=base_edge + a_territory_bonus + a_entrenchment_bonus,
-            bias_tokens=base_bias
+            edge_tokens=a_edge_base + a_territory_bonus + a_entrenchment_bonus,
+            bias_tokens=a_bias_base,
+            player_class=prev_a_class
         )
         game.player_b_budget = PlayerBudget(
-            edge_tokens=base_edge + b_territory_bonus + b_entrenchment_bonus,
-            bias_tokens=base_bias
+            edge_tokens=b_edge_base + b_territory_bonus + b_entrenchment_bonus,
+            bias_tokens=b_bias_base,
+            player_class=prev_b_class
         )
     else:
-        # First round - use default budgets
-        game.player_a_budget = PlayerBudget()
-        game.player_b_budget = PlayerBudget()
+        # First round - use class-specific budgets if available
+        if prev_a_class:
+            a_bias, a_edge = get_starting_budget(prev_a_class)
+            game.player_a_budget = PlayerBudget(
+                bias_tokens=a_bias, edge_tokens=a_edge, player_class=prev_a_class
+            )
+        else:
+            game.player_a_budget = PlayerBudget()
 
-    # CARD SYSTEM: Deal cards to both players
-    deal_cards_to_player(game.player_a_budget, num_cards=5)
-    deal_cards_to_player(game.player_b_budget, num_cards=5)
+        if prev_b_class:
+            b_bias, b_edge = get_starting_budget(prev_b_class)
+            game.player_b_budget = PlayerBudget(
+                bias_tokens=b_bias, edge_tokens=b_edge, player_class=prev_b_class
+            )
+        else:
+            game.player_b_budget = PlayerBudget()
+
+    # CARD SYSTEM: Deal cards to both players (class-weighted if class is chosen)
+    if prev_a_class:
+        deal_class_cards(game.player_a_budget, prev_a_class, num_cards=5)
+    else:
+        deal_cards_to_player(game.player_a_budget, num_cards=5)
+
+    if prev_b_class:
+        deal_class_cards(game.player_b_budget, prev_b_class, num_cards=5)
+    else:
+        deal_cards_to_player(game.player_b_budget, num_cards=5)
 
     # Reset ready status
     game.player_a_ready = False

@@ -9,6 +9,8 @@ import { ActionQueue } from "../components/ActionQueue";
 import { CellTooltip } from "../components/CellTooltip";
 import { GameLegend } from "../components/GameLegend";
 import { CardHand } from "../components/CardHand";
+import ClassSelector from "../components/ClassSelector";
+import { ClassInfo } from "../components/ClassInfo";
 
 export function Game() {
   const {
@@ -26,6 +28,7 @@ export function Game() {
     batchActions,
     getAllCards,
     playCard,
+    getAllClasses,
   } = useGameAPI();
 
   const [selectedCell, setSelectedCell] = useState<[number, number] | null>(
@@ -50,9 +53,16 @@ export function Game() {
   // CARD SYSTEM: Selected card state
   const [selectedCard, setSelectedCard] = useState<CardType | null>(null);
 
-  useEffect(() => {
-    createGame();
-  }, [createGame]);
+  // CLASS SYSTEM: Track if game has been initialized
+  const [gameInitialized, setGameInitialized] = useState(false);
+
+  const handleClassSelection = async (
+    playerAClass: string | undefined,
+    playerBClass: string | undefined
+  ) => {
+    await createGame(playerAClass, playerBClass);
+    setGameInitialized(true);
+  };
 
   const handleResetGame = async () => {
     await resetGame();
@@ -209,6 +219,18 @@ export function Game() {
     // Animation lasts 2 seconds
     setTimeout(() => setIsAnimating(false), 2000);
   };
+
+  // Show class selector before game starts
+  if (!gameInitialized) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
+        <ClassSelector
+          onSelectClasses={handleClassSelection}
+          getAllClasses={getAllClasses}
+        />
+      </div>
+    );
+  }
 
   if (!gameState) {
     return (
