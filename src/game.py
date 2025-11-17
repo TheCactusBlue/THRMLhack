@@ -13,6 +13,8 @@ from thrml.models import IsingEBM, IsingSamplingProgram, hinton_init
 from .cards import CardType, Card, deal_cards_to_player, can_play_card, play_card
 # Import player class system
 from .player_classes import PlayerClass, deal_class_cards, get_starting_budget, apply_class_passive
+# Import skill system
+from .skills import SkillName, SkillState, initialize_skill_cooldowns
 
 
 # -------------------------
@@ -40,6 +42,10 @@ class PlayerBudget:
     # Class system
     player_class: Optional[PlayerClass] = None  # Player's chosen class
     cards_redrawn: int = 0  # Track card redraws (for Hybrid class)
+    # Skill system
+    skill_cooldowns: Dict[SkillName, SkillState] = field(default_factory=dict)  # Track skill cooldowns
+    locked_cells: Dict[int, int] = field(default_factory=dict)  # For Bastion skill: cell_idx -> rounds_remaining
+    morphed_skill: Optional[SkillName] = None  # For Morph skill: temporarily copied skill
 
 
 @dataclass
@@ -181,7 +187,8 @@ def create_game(
         player_a_budget = PlayerBudget(
             bias_tokens=a_bias,
             edge_tokens=a_edge,
-            player_class=player_a_class
+            player_class=player_a_class,
+            skill_cooldowns=initialize_skill_cooldowns(player_a_class.value if player_a_class else None)
         )
     else:
         player_a_budget = PlayerBudget()
@@ -191,7 +198,8 @@ def create_game(
         player_b_budget = PlayerBudget(
             bias_tokens=b_bias,
             edge_tokens=b_edge,
-            player_class=player_b_class
+            player_class=player_b_class,
+            skill_cooldowns=initialize_skill_cooldowns(player_b_class.value if player_b_class else None)
         )
     else:
         player_b_budget = PlayerBudget()

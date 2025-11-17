@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import type { GameState, PlayerType, Card, CardType, PlayerClassDefinition } from '../types'
+import type { GameState, PlayerType, Card, CardType, PlayerClassDefinition, Skill, SkillName, SkillCooldownStatus } from '../types'
 
 const API_URL = 'http://localhost:8000'
 
@@ -255,6 +255,77 @@ export function useGameAPI() {
     }
   }, [fetchGameState])
 
+  // Skill system API calls
+  const getAllSkills = useCallback(async (): Promise<Skill[]> => {
+    try {
+      const response = await fetch(`${API_URL}/skills/all`)
+      const data = await response.json()
+      return data.skills
+    } catch (error) {
+      showMessage('Error fetching skills: ' + error)
+      return []
+    }
+  }, [])
+
+  const getClassSkills = useCallback(async (playerClass: string): Promise<Skill[]> => {
+    try {
+      const response = await fetch(`${API_URL}/skills/class/${playerClass}`)
+      const data = await response.json()
+      return data.skills
+    } catch (error) {
+      showMessage('Error fetching class skills: ' + error)
+      return []
+    }
+  }, [])
+
+  const getCooldowns = useCallback(async (player: PlayerType): Promise<Record<string, SkillCooldownStatus>> => {
+    try {
+      const response = await fetch(`${API_URL}/game/cooldowns/${player}`)
+      const data = await response.json()
+      return data.cooldowns
+    } catch (error) {
+      showMessage('Error fetching cooldowns: ' + error)
+      return {}
+    }
+  }, [])
+
+  const useSkill = useCallback(async (
+    skillName: SkillName,
+    player: PlayerType,
+    targetRow?: number,
+    targetCol?: number
+  ) => {
+    setLoading(true)
+    try {
+      const response = await fetch(`${API_URL}/game/use-skill`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          skill_name: skillName,
+          player,
+          target_row: targetRow,
+          target_col: targetCol,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Failed to use skill')
+      }
+
+      const data = await response.json()
+      await fetchGameState()
+      showMessage(data.message)
+      return data
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      showMessage('Error: ' + errorMsg)
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchGameState])
+
   return {
     gameState,
     loading,
@@ -274,5 +345,10 @@ export function useGameAPI() {
     playCard,
     // Class system
     getAllClasses,
+    // Skill system
+    getAllSkills,
+    getClassSkills,
+    getCooldowns,
+    useSkill,
   }
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type { PlayerType, Action, CardType } from "../types";
+import type { PlayerType, Action, CardType, SkillName } from "../types";
 import { useGameAPI } from "../hooks/useGameAPI";
 import { PlayerPanel } from "../components/PlayerPanel";
 import { GameGrid } from "../components/GameGrid";
@@ -9,6 +9,7 @@ import { ActionQueue } from "../components/ActionQueue";
 import { CellTooltip } from "../components/CellTooltip";
 import { GameLegend } from "../components/GameLegend";
 import { CardHand } from "../components/CardHand";
+import { SkillBar } from "../components/SkillBar";
 import ClassSelector from "../components/ClassSelector";
 
 export function Game() {
@@ -26,6 +27,9 @@ export function Game() {
     getAllCards,
     playCard,
     getAllClasses,
+    getClassSkills,
+    getCooldowns,
+    useSkill,
   } = useGameAPI();
 
   const [selectedCell, setSelectedCell] = useState<[number, number] | null>(
@@ -49,6 +53,9 @@ export function Game() {
 
   // CARD SYSTEM: Selected card state
   const [selectedCard, setSelectedCard] = useState<CardType | null>(null);
+
+  // SKILL SYSTEM: Selected skill state
+  const [selectedSkill, setSelectedSkill] = useState<SkillName | null>(null);
 
   // CLASS SYSTEM: Track if game has been initialized
   const [gameInitialized, setGameInitialized] = useState(false);
@@ -122,6 +129,13 @@ export function Game() {
   };
 
   const handleCellClick = async (row: number, col: number) => {
+    // SKILL SYSTEM: If a skill is selected, use it at this location
+    if (selectedSkill) {
+      await useSkill(selectedSkill, currentPlayer, row, col);
+      setSelectedSkill(null);
+      return;
+    }
+
     // CARD SYSTEM: If a card is selected, play it at this location
     if (selectedCard) {
       await playCard(selectedCard, row, col, currentPlayer);
@@ -331,6 +345,21 @@ export function Game() {
               />
             </div>
           )}
+
+          {/* SKILL SYSTEM: Player A's skills */}
+          {currentPlayer === "A" && gameState.player_a_budget && (
+            <div className="mt-4 pt-4 border-t border-neutral-700">
+              <SkillBar
+                playerClass={gameState.player_a_budget.player_class}
+                player="A"
+                currentRound={gameState.current_round}
+                onSkillSelect={setSelectedSkill}
+                selectedSkill={selectedSkill}
+                getClassSkills={getClassSkills}
+                getCooldowns={getCooldowns}
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col items-center overflow-y-auto">
@@ -438,6 +467,21 @@ export function Game() {
                 onCardSelect={setSelectedCard}
                 selectedCard={selectedCard}
                 getAllCards={getAllCards}
+              />
+            </div>
+          )}
+
+          {/* SKILL SYSTEM: Player B's skills */}
+          {currentPlayer === "B" && gameState.player_b_budget && (
+            <div className="mt-4 pt-4 border-t border-neutral-700">
+              <SkillBar
+                playerClass={gameState.player_b_budget.player_class}
+                player="B"
+                currentRound={gameState.current_round}
+                onSkillSelect={setSelectedSkill}
+                selectedSkill={selectedSkill}
+                getClassSkills={getClassSkills}
+                getCooldowns={getCooldowns}
               />
             </div>
           )}

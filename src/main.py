@@ -8,6 +8,8 @@ import jax.numpy as jnp
 from src import game
 from src.cards import CardType, Card
 from src.player_classes import PlayerClass, get_all_classes, get_class_definition
+from src.skills import SkillName, SKILLS, get_class_skills, use_skill, get_cooldown_status
+from src.skill_effects import execute_skill
 
 app = FastAPI(title="THRMLHack Energy Battle Game")
 
@@ -437,6 +439,13 @@ class PlayCardRequest(BaseModel):
     player: str = 'A'  # 'A' or 'B'
 
 
+class UseSkillRequest(BaseModel):
+    skill_name: str  # SkillName enum value
+    player: str = 'A'  # 'A' or 'B'
+    target_row: Optional[int] = None
+    target_col: Optional[int] = None
+
+
 @app.get("/cards/all")
 def get_all_cards():
     """
@@ -474,6 +483,131 @@ def get_all_classes_endpoint():
             "color_scheme": class_def.color_scheme,
         })
     return {"classes": classes_info}
+
+
+@app.get("/skills/all")
+def get_all_skills():
+    """
+    Get information about all available skills.
+    """
+    skills_info = []
+    for skill_name, skill in SKILLS.items():
+        skills_info.append({
+            "name": skill.name.value,
+            "display_name": skill.display_name,
+            "description": skill.description,
+            "cooldown": skill.cooldown,
+            "requires_target": skill.requires_target,
+            "icon": skill.icon,
+        })
+    return {"skills": skills_info}
+
+
+@app.get("/skills/class/{player_class}")
+def get_class_skills_endpoint(player_class: str):
+    """
+    Get the 3 skills available to a specific player class.
+    """
+    skills = get_class_skills(player_class)
+    skills_info = []
+    for skill in skills:
+        skills_info.append({
+            "name": skill.name.value,
+            "display_name": skill.display_name,
+            "description": skill.description,
+            "cooldown": skill.cooldown,
+            "requires_target": skill.requires_target,
+            "icon": skill.icon,
+        })
+    return {"skills": skills_info}
+
+
+@app.get("/game/cooldowns/{player}")
+def get_cooldowns(player: str):
+    """
+    Get cooldown status for all skills for a player.
+    """
+    if current_game is None:
+        raise HTTPException(status_code=404, detail="No active game")
+
+    if player not in ['A', 'B']:
+        raise HTTPException(status_code=400, detail="Player must be 'A' or 'B'")
+
+    budget = current_game.player_a_budget if player == 'A' else current_game.player_b_budget
+
+    if budget.player_class is None:
+        return {"cooldowns": {}}
+
+    status = get_cooldown_status(
+        budget.player_class.value,
+        current_game.current_round,
+        budget.skill_cooldowns
+    )
+
+    return {"cooldowns": status}
+
+
+@app.post("/game/use-skill")
+def use_skill_endpoint(request: UseSkillRequest):
+    """
+    Use a skill from the player's class.
+    """
+    if current_game is None:
+        raise HTTPException(status_code=404, detail="No active game")
+
+    if request.player not in ['A', 'B']:
+        raise HTTPException(status_code=400, detail="Player must be 'A' or 'B'")
+
+    try:
+        skill_name = SkillName(request.skill_name)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid skill name: {request.skill_name}")
+
+    budget = current_game.player_a_budget if request.player == 'A' else current_game.player_b_budget
+
+    # Check if player has this skill
+    player_skills = get_class_skills(budget.player_class.value if budget.player_class else None)
+    if not any(s.name == skill_name for s in player_skills):
+        # Check if it's a morphed skill
+        if budget.morphed_skill != skill_name:
+            raise HTTPException(status_code=400, detail=f"Skill {skill_name.value} not available to this class")
+
+    # Check if skill is on cooldown
+    skill = SKILLS[skill_name]
+    if not use_skill(skill_name, current_game.current_round, budget.skill_cooldowns):
+        state = budget.skill_cooldowns.get(skill_name)
+        rounds_left = state.rounds_until_ready(current_game.current_round, skill.cooldown) if state else 0
+        raise HTTPException(
+            status_code=400,
+            detail=f"Skill {skill_name.value} is on cooldown ({rounds_left} rounds remaining)"
+        )
+
+    # Check if skill requires target
+    if skill.requires_target and (request.target_row is None or request.target_col is None):
+        raise HTTPException(status_code=400, detail=f"Skill {skill_name.value} requires a target location")
+
+    try:
+        # Execute the skill
+        updated_game, message = execute_skill(
+            current_game,
+            skill_name,
+            request.player,
+            request.target_row,
+            request.target_col
+        )
+
+        return {
+            "message": message,
+            "player": request.player,
+            "skill": skill_name.value,
+            "cooldown_status": get_cooldown_status(
+                budget.player_class.value if budget.player_class else None,
+                current_game.current_round,
+                budget.skill_cooldowns
+            ),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.post("/game/play-card")

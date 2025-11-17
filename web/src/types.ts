@@ -15,6 +15,39 @@ export interface Card {
   edge_cost: number
 }
 
+// Skill system types
+export type SkillName =
+  | 'deep_strike'
+  | 'surgical_cut'
+  | 'momentum'
+  | 'reinforce'
+  | 'bastion'
+  | 'entrench'
+  | 'cascade'
+  | 'feedback_loop'
+  | 'exploit'
+  | 'heat_wave'
+  | 'polarity_flip'
+  | 'gambit'
+  | 'morph'
+  | 'balance_shift'
+  | 'adapt'
+
+export interface Skill {
+  name: SkillName
+  display_name: string
+  description: string
+  cooldown: number
+  requires_target: boolean
+  icon: string
+}
+
+export interface SkillCooldownStatus {
+  available: boolean
+  rounds_until_ready: number
+  cooldown: number
+}
+
 export interface PlayerBudget {
   edge_tokens: number
   bias_tokens: number
