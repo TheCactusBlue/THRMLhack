@@ -1,7 +1,20 @@
+import { useState } from "react";
+
 export function GameLegend() {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <div className="bg-neutral-900 border-2 border-neutral-800 rounded-lg p-3 text-xs">
-      <h3 className="font-bold text-gray-300 mb-2">Legend</h3>
+    <div className="bg-neutral-900 border-2 border-neutral-800 rounded-lg text-xs">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-3 py-2 flex items-center justify-between hover:bg-neutral-800 transition-colors"
+      >
+        <h3 className="font-bold text-gray-300">Legend</h3>
+        <span className="text-gray-400">{isOpen ? "▼" : "▶"}</span>
+      </button>
+
+      {isOpen && (
+        <div className="px-3 pb-3 border-t border-neutral-800">
 
       <div className="space-y-2">
         {/* Cell Colors */}
@@ -66,6 +79,8 @@ export function GameLegend() {
           </div>
         </div>
       </div>
+        </div>
+      )}
     </div>
   );
 }
