@@ -35,6 +35,7 @@ export function Game() {
     null
   );
   const [edgeMode, setEdgeMode] = useState(false);
+  const [shiftPressed, setShiftPressed] = useState(false);
   const [currentPlayer, setCurrentPlayer] = useState<PlayerType>("A");
   const [roundWinner, setRoundWinner] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
@@ -55,6 +56,29 @@ export function Game() {
 
   // CLASS SYSTEM: Track if game has been initialized
   const [gameInitialized, setGameInitialized] = useState(false);
+
+  // Shift key handling for temporary mode toggle
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Shift' && !shiftPressed) {
+        setShiftPressed(true);
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') {
+        setShiftPressed(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [shiftPressed]);
 
   const handleClassSelection = async (
     playerAClass: string | undefined,
@@ -109,8 +133,11 @@ export function Game() {
       return;
     }
 
+    // Effective mode: toggle if shift is pressed
+    const effectiveEdgeMode = shiftPressed ? !edgeMode : edgeMode;
+
     // REDESIGN: Remove confirm dialogs - use shift key for direction
-    if (edgeMode) {
+    if (effectiveEdgeMode) {
       // Edge coupling mode
       if (selectedCell === null) {
         setSelectedCell([row, col]);
@@ -243,11 +270,15 @@ export function Game() {
 
   const bothReady = gameState.player_a_ready && gameState.player_b_ready;
 
+  // Effective mode considering shift key
+  const effectiveEdgeMode = shiftPressed ? !edgeMode : edgeMode;
+
   return (
     <div className="max-w-full h-screen m-0 p-2 flex flex-col overflow-hidden">
       <GameControls
         gameState={gameState}
-        edgeMode={edgeMode}
+        edgeMode={effectiveEdgeMode}
+        shiftPressed={shiftPressed}
         loading={loading}
         onSetEdgeMode={setEdgeMode}
         onSetSelectedCell={setSelectedCell}
@@ -320,7 +351,7 @@ export function Game() {
           <GameGrid
             gameState={gameState}
             selectedCell={selectedCell}
-            edgeMode={edgeMode}
+            edgeMode={effectiveEdgeMode}
             onCellClick={handleCellClick}
             previewMode={previewMode}
             previewData={previewData}
