@@ -94,7 +94,7 @@ export default function ClassSelector({
                     <img
                       src={`/characters/${classInfo.type}.png`}
                       alt={classInfo.name}
-                      className="w-16 h-16 rounded object-cover"
+                      className="w-16 h-16 rounded object-contain"
                     />
                     <div className="flex-1">
                       <span className="text-xl">
@@ -169,7 +169,7 @@ export default function ClassSelector({
                     <img
                       src={`/characters/${classInfo.type}.png`}
                       alt={classInfo.name}
-                      className="w-16 h-16 rounded object-cover"
+                      className="w-16 h-16 rounded object-contain"
                     />
                     <div className="flex-1">
                       <span className="text-xl">
