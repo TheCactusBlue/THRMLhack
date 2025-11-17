@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-THRMLHack is a turn-based Ising model energy battle game built for the THRML hackathon. Two players compete by manipulating an Ising model grid through biases and couplings, then run THRML-powered Gibbs sampling to see the resulting spin configuration. The player who controls more territory (grid cells) wins each round.
+Thermodynamic Tactics is a turn-based Ising model energy battle game built for the THRML hackathon. Two players compete by manipulating an Ising model grid through biases and couplings, then run THRML-powered Gibbs sampling to see the resulting spin configuration. The player who controls more territory (grid cells) wins each round.
 
 The project consists of:
 - **Backend**: FastAPI server (Python) that manages game state and runs THRML sampling with JAX

@@ -1,4 +1,4 @@
-# THRMLHack
+# Thermodynamic Tactics
 
 A turn-based Ising model energy battle game built for the THRML hackathon.
 
@@ -25,6 +25,7 @@ This will start both the backend (port 8000) and frontend (port 5173) servers.
 ### Manual Start
 
 **Backend:**
+
 ```bash
 uv run python -m src.main
 ```
@@ -32,6 +33,7 @@ uv run python -m src.main
 The FastAPI server will start on `http://localhost:8000`
 
 **Frontend** (in a separate terminal):
+
 ```bash
 cd web
 npm install

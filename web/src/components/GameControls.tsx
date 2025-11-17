@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import type { GameState } from '../types'
 
 interface GameControlsProps {
@@ -28,6 +29,12 @@ export function GameControls({
         <div className="text-sm font-bold py-1 px-3 bg-neutral-800 rounded-md text-emerald-500 border border-neutral-800">
           Round {gameState.current_round}/{gameState.max_rounds}
         </div>
+        <Link
+          to="/how-to-play"
+          className="py-1.5 px-3 rounded-md text-[0.85rem] font-semibold cursor-pointer transition-all duration-200 border-2 bg-cyan-600 border-cyan-600 text-white hover:bg-cyan-700 max-sm:hidden"
+        >
+          ❓ How to Play
+        </Link>
       </div>
 
       <div className="flex items-center gap-3 max-lg:order-3 max-lg:w-full max-lg:justify-center">
